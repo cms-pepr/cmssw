@@ -1,0 +1,14 @@
+<use name="FWCore/Framework" />
+<use name="FWCore/PluginManager" />
+<use name="FWCore/ParameterSet" />
+<use name="FWCore/MessageLogger" />
+<use name="DataFormats/TrackReco" />
+<use name="RecoLocalCalo/HGCalRecAlgos" />
+<use name="PhysicsTools/TensorFlow" />
+<use name="SimDataFormats/CaloAnalysis" />
+<use name="root"/>
+
+<use name="RecoHGCal/GraphReco"/>
+
+
+<flags EDM_PLUGIN="1" />

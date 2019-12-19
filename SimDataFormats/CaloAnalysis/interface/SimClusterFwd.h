@@ -11,7 +11,7 @@ typedef edm::Ref<SimClusterCollection> SimClusterRef;
 typedef edm::RefVector<SimClusterCollection> SimClusterRefVector;
 typedef edm::RefProd<SimClusterCollection> SimClusterRefProd;
 typedef edm::RefVector<SimClusterCollection> SimClusterContainer;
-typedef std::vector<std::pair<int,int>> SimClusterHistory;
+typedef std::vector<std::pair<int, int>> SimClusterHistory;
 
 std::ostream &operator<<(std::ostream &s, SimCluster const &tp);
 

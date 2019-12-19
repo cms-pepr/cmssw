@@ -44,8 +44,8 @@ public:
   SimCluster();
 
   SimCluster(const SimTrack &simtrk);
-  SimCluster(EncodedEventId eventID, uint32_t particleID);  // for PU
-  SimCluster(const std::vector<SimTrack>& simtrks, int pdgId = 0);  // for merged clusters
+  SimCluster(EncodedEventId eventID, uint32_t particleID);          // for PU
+  SimCluster(const std::vector<SimTrack> &simtrks, int pdgId = 0);  // for merged clusters
 
   // destructor
   ~SimCluster();
@@ -215,15 +215,14 @@ public:
   /** @brief add simhit's energy to cluster */
   void addSimHit(const PCaloHit &hit) { simhit_energy_ += hit.energy(); }
 
+  void setImpactPoint(const math::XYZTLorentzVectorF &point) { impactPoint_ = point; }
+  const math::XYZTLorentzVectorF &impactPoint() const { return impactPoint_; }
 
-  void setImpactPoint(const math::XYZTLorentzVectorF& point){impactPoint_ = point;}
-  const math::XYZTLorentzVectorF& impactPoint()const{return impactPoint_;}
+  void setImpactMomentum(const math::XYZTLorentzVectorF &mom) { impactMomentum_ = mom; }
+  const math::XYZTLorentzVectorF &impactMomentum() const { return impactMomentum_; }
 
-  void setImpactMomentum(const math::XYZTLorentzVectorF& mom){impactMomentum_=mom;}
-  const math::XYZTLorentzVectorF& impactMomentum()const{return impactMomentum_;}
-
-  const std::vector<math::XYZTLorentzVectorF> & subImpactPoints()const{return subImpacts_;}
-  void setSubImpactPoints(const std::vector<math::XYZTLorentzVectorF> &  p){subImpacts_=p;}
+  const std::vector<math::XYZTLorentzVectorF> &subImpactPoints() const { return subImpacts_; }
+  void setSubImpactPoints(const std::vector<math::XYZTLorentzVectorF> &p) { subImpacts_ = p; }
 
 private:
   uint64_t nsimhits_;
@@ -246,7 +245,6 @@ private:
   math::XYZTLorentzVectorF impactMomentum_;
 
   std::vector<math::XYZTLorentzVectorF> subImpacts_;
-
 };
 
 #endif  // SimDataFormats_SimCluster_H

@@ -113,28 +113,25 @@ public:
   virtual void endStream() override;
   virtual void produce(edm::Event&, const edm::EventSetup&) override;
 
-  void determineSimClusterGroups(
-    const SimClusterCollection&,
-    const std::vector<SimClusterHistory>&,
-    std::vector<std::vector<int>>&,
-    std::unique_ptr<std::vector<float>>&,
-    std::unique_ptr<std::vector<math::XYZTLorentzVectorD>>&) const;
+  void determineSimClusterGroups(const SimClusterCollection&,
+                                 const std::vector<SimClusterHistory>&,
+                                 std::vector<std::vector<int>>&,
+                                 std::unique_ptr<std::vector<float>>&,
+                                 std::unique_ptr<std::vector<math::XYZTLorentzVectorD>>&) const;
 
-  bool checkSimClusterMerging(
-    int,
-    int,
-    const SimClusterCollection&,
-    const std::vector<SimClusterHistory>&,
-    const std::unique_ptr<std::vector<float>>&,
-    const std::unique_ptr<std::vector<math::XYZTLorentzVectorD>>&) const;
+  bool checkSimClusterMerging(int,
+                              int,
+                              const SimClusterCollection&,
+                              const std::vector<SimClusterHistory>&,
+                              const std::unique_ptr<std::vector<float>>&,
+                              const std::unique_ptr<std::vector<math::XYZTLorentzVectorD>>&) const;
 
-  void mergeSimClusters(
-    const SimClusterCollection&,
-    const std::vector<SimClusterHistory>&,
-    const std::vector<std::vector<int>>&,
-    std::unique_ptr<SimClusterCollection>&,
-    const std::vector<const HGCRecHit*>& ,
-    const std::unordered_map<DetId, size_t>&) const;
+  void mergeSimClusters(const SimClusterCollection&,
+                        const std::vector<SimClusterHistory>&,
+                        const std::vector<std::vector<int>>&,
+                        std::unique_ptr<SimClusterCollection>&,
+                        const std::vector<const HGCRecHit*>&,
+                        const std::unordered_map<DetId, size_t>&) const;
 
 private:
   float showerContainment_;
@@ -163,25 +160,28 @@ void HGCTruthProducer::fillDescriptions(edm::ConfigurationDescriptions& descript
   desc.add<edm::InputTag>("caloParticleCollection", edm::InputTag("mix", "MergedCaloTruth"));
   desc.add<edm::InputTag>("simClusterCollection", edm::InputTag("mix", "MergedCaloTruth"));
   desc.add<edm::InputTag>("simClusterHistoryCollection", edm::InputTag("mix", "MergedCaloTruth"));
-  desc.add<std::vector<edm::InputTag>>("recHitCollections", {
-    edm::InputTag("HGCalRecHit", "HGCEERecHits"),
-    edm::InputTag("HGCalRecHit", "HGCHEFRecHits"),
-    edm::InputTag("HGCalRecHit", "HGCHEBRecHits"),
-  });
+  desc.add<std::vector<edm::InputTag>>("recHitCollections",
+                                       {
+                                           edm::InputTag("HGCalRecHit", "HGCEERecHits"),
+                                           edm::InputTag("HGCalRecHit", "HGCHEFRecHits"),
+                                           edm::InputTag("HGCalRecHit", "HGCHEBRecHits"),
+                                       });
 
   descriptions.add("hgcTruthProducer", desc);
 }
 
 HGCTruthProducer::HGCTruthProducer(const edm::ParameterSet& params)
-    : showerContainment_(0.6827)
-    , minEta_(params.getParameter<double>("minEta"))
-    , maxEta_(params.getParameter<double>("maxEta"))
-    , minHitsRadius_(params.getParameter<int>("minHitsRadius"))
-    , maxDeltaEtaGroup_(params.getParameter<double>("maxDeltaEtaGroup"))
-    , verbose_(params.getUntrackedParameter<bool>("verbose"))
-    , caloParticleToken_(consumes<std::vector<CaloParticle>>(params.getParameter<edm::InputTag>("caloParticleCollection")))
-    , simClusterToken_(consumes<std::vector<SimCluster>>(params.getParameter<edm::InputTag>("simClusterCollection")))
-    , simClusterHistoryToken_(consumes<std::vector<SimClusterHistory>>(params.getParameter<edm::InputTag>("simClusterHistoryCollection"))) {
+    : showerContainment_(0.6827),
+      minEta_(params.getParameter<double>("minEta")),
+      maxEta_(params.getParameter<double>("maxEta")),
+      minHitsRadius_(params.getParameter<int>("minHitsRadius")),
+      maxDeltaEtaGroup_(params.getParameter<double>("maxDeltaEtaGroup")),
+      verbose_(params.getUntrackedParameter<bool>("verbose")),
+      caloParticleToken_(
+          consumes<std::vector<CaloParticle>>(params.getParameter<edm::InputTag>("caloParticleCollection"))),
+      simClusterToken_(consumes<std::vector<SimCluster>>(params.getParameter<edm::InputTag>("simClusterCollection"))),
+      simClusterHistoryToken_(
+          consumes<std::vector<SimClusterHistory>>(params.getParameter<edm::InputTag>("simClusterHistoryCollection"))) {
   if (verbose_) {
     std::cout << "running TreeWriter in verbose mode" << std::endl;
   }
@@ -221,15 +221,14 @@ void HGCTruthProducer::produce(edm::Event& event, const edm::EventSetup& setup) 
 
   std::vector<const HGCRecHit*> allrechits;
   std::unordered_map<DetId, size_t> detid_to_rh_index;
-  size_t rhindex=0;
-  for (auto & token : recHitTokens_) {
-      for (const auto& rh : event.get(token)) {
-          detid_to_rh_index[rh.detid()]=rhindex;
-          rhindex++;
-          allrechits.push_back(&rh);
-      }
+  size_t rhindex = 0;
+  for (auto& token : recHitTokens_) {
+    for (const auto& rh : event.get(token)) {
+      detid_to_rh_index[rh.detid()] = rhindex;
+      rhindex++;
+      allrechits.push_back(&rh);
+    }
   }
-
 
   // read SimClusterHistory
   edm::Handle<std::vector<SimClusterHistory>> simClusterHistoryHandle;
@@ -241,9 +240,10 @@ void HGCTruthProducer::produce(edm::Event& event, const edm::EventSetup& setup) 
   determineSimClusterGroups(simClusters, simClusterHistory, groups, radii, vectors);
 
   // do the actual merging
-  mergeSimClusters(simClusters, simClusterHistory, groups, mergedSimClusters,allrechits,detid_to_rh_index);
+  mergeSimClusters(simClusters, simClusterHistory, groups, mergedSimClusters, allrechits, detid_to_rh_index);
 
-  std::cout << "initial simclusters " << simClusters.size()<< " merged: " <<  mergedSimClusters->size() << std::endl;//DEBUG Jan
+  std::cout << "initial simclusters " << simClusters.size() << " merged: " << mergedSimClusters->size()
+            << std::endl;  //DEBUG Jan
 
   // save outputs
   event.put(std::move(mergedSimClusters));
@@ -251,12 +251,11 @@ void HGCTruthProducer::produce(edm::Event& event, const edm::EventSetup& setup) 
   event.put(std::move(vectors));
 }
 
-void HGCTruthProducer::determineSimClusterGroups(
-    const SimClusterCollection &simClusters,
-    const std::vector<SimClusterHistory> &simClusterHistory,
-    std::vector<std::vector<int>> &groups,
-    std::unique_ptr<std::vector<float>> &radii,
-    std::unique_ptr<std::vector<math::XYZTLorentzVectorD>> &vectors) const {
+void HGCTruthProducer::determineSimClusterGroups(const SimClusterCollection& simClusters,
+                                                 const std::vector<SimClusterHistory>& simClusterHistory,
+                                                 std::vector<std::vector<int>>& groups,
+                                                 std::unique_ptr<std::vector<float>>& radii,
+                                                 std::unique_ptr<std::vector<math::XYZTLorentzVectorD>>& vectors) const {
   // Note: In many places, the implementation is based on indices for performance purposes. To
   // simplify the distinction, they are referred to as {i,j}Name, such as iSC for sim clusters or iH
   // for hits. Sometimes, lists (vectors) of these indices are used. The index to those values are
@@ -287,7 +286,7 @@ void HGCTruthProducer::determineSimClusterGroups(
   int nHGCalSimClusters = (int)scIndices.size();
 
   // determine simCluster radii
-  for (const int &iSC : scIndices) {
+  for (const int& iSC : scIndices) {
     // create four-vectors for each hit and the summed shower vector
     auto atthispointthis_is_hitsandfractions_hitsAndEnergies = simClusters[iSC].hits_and_fractions();
     int nHits = (int)atthispointthis_is_hitsandfractions_hitsAndEnergies.size();
@@ -312,9 +311,10 @@ void HGCTruthProducer::determineSimClusterGroups(
     // sort the hit vector indices according to distance to the shower vector, closest first
     // notice the change from iH to iiH as from now on, the hitVectorIndices hold indices referring
     // to the actual index in hitVectors
-    sort(hitVectorIndices.begin(), hitVectorIndices.end(), [&showerVector, &hitVectors](const int &iiH, const int &jjH) {
-      return deltaR(showerVector, hitVectors[iiH]) < deltaR(showerVector, hitVectors[jjH]);
-    });
+    sort(
+        hitVectorIndices.begin(), hitVectorIndices.end(), [&showerVector, &hitVectors](const int& iiH, const int& jjH) {
+          return deltaR(showerVector, hitVectors[iiH]) < deltaR(showerVector, hitVectors[jjH]);
+        });
 
     // loop through hit vectors in order of the sorted indices until the target energy is reached
     float radius = deltaR(showerVector, hitVectors[hitVectorIndices[nHits - 1]]);
@@ -357,7 +357,7 @@ void HGCTruthProducer::determineSimClusterGroups(
   }
 
   // sort the cluster indices by eta
-  sort(scIndices.begin(), scIndices.end(), [&simClusters](const int &iSC, const int &jSC) {
+  sort(scIndices.begin(), scIndices.end(), [&simClusters](const int& iSC, const int& jSC) {
     return simClusters[iSC].impactPoint().eta() < simClusters[jSC].impactPoint().eta();
   });
 
@@ -397,7 +397,8 @@ void HGCTruthProducer::determineSimClusterGroups(
           // stop when the difference in eta is too high already
           const auto& currCluster = simClusters[curr->iSC];
           const auto& prevCluster = simClusters[prev->iSC];
-          auto dEta = fabs(currCluster.impactPoint().eta() - prevCluster.impactPoint().eta());  // fabs actually not required
+          auto dEta =
+              fabs(currCluster.impactPoint().eta() - prevCluster.impactPoint().eta());  // fabs actually not required
           if (dEta > maxDeltaEtaGroup_) {
             break;
           }
@@ -422,7 +423,8 @@ void HGCTruthProducer::determineSimClusterGroups(
           // stop when the difference in eta is too high already
           const auto& currCluster = simClusters[curr->iSC];
           const auto& nextCluster = simClusters[next->iSC];
-          auto dEta = fabs(nextCluster.impactPoint().eta() - currCluster.impactPoint().eta());  // fabs actually not required
+          auto dEta =
+              fabs(nextCluster.impactPoint().eta() - currCluster.impactPoint().eta());  // fabs actually not required
           if (dEta > maxDeltaEtaGroup_) {
             break;
           }
@@ -512,10 +514,10 @@ void HGCTruthProducer::determineSimClusterGroups(
 bool HGCTruthProducer::checkSimClusterMerging(
     int iSC,
     int jSC,
-    const SimClusterCollection &simClusters,
-    const std::vector<SimClusterHistory> &simClusterHistory,
-    const std::unique_ptr<std::vector<float>> &radii,
-    const std::unique_ptr<std::vector<math::XYZTLorentzVectorD>> &vectors) const {
+    const SimClusterCollection& simClusters,
+    const std::vector<SimClusterHistory>& simClusterHistory,
+    const std::unique_ptr<std::vector<float>>& radii,
+    const std::unique_ptr<std::vector<math::XYZTLorentzVectorD>>& vectors) const {
   // get some values
   auto dR = deltaR(vectors->at(iSC), vectors->at(jSC));
 
@@ -543,42 +545,37 @@ bool HGCTruthProducer::checkSimClusterMerging(
   // TODO: exploit information about common ancestors (e.g. useful for e/gamma, pi0, ...)
 }
 
-void HGCTruthProducer::mergeSimClusters(
-    const SimClusterCollection &simClusters,
-    const std::vector<SimClusterHistory> &simClusterHistory,
-    const std::vector<std::vector<int>> &groups,
-    std::unique_ptr<SimClusterCollection> &mergedSimClusters,
-    const std::vector<const HGCRecHit*>& rechits,
-    const std::unordered_map<DetId, size_t>& rh_detid_to_idx) const {
-
-
-
+void HGCTruthProducer::mergeSimClusters(const SimClusterCollection& simClusters,
+                                        const std::vector<SimClusterHistory>& simClusterHistory,
+                                        const std::vector<std::vector<int>>& groups,
+                                        std::unique_ptr<SimClusterCollection>& mergedSimClusters,
+                                        const std::vector<const HGCRecHit*>& rechits,
+                                        const std::unordered_map<DetId, size_t>& rh_detid_to_idx) const {
   for (std::vector<int> group : groups) {
     if (group.size() == 0) {
       continue;
     }
 
     // sort group elements by sim cluster energies
-    sort(group.begin(), group.end(), [&simClusters](const int &iSC, const int &jSC) {
+    sort(group.begin(), group.end(), [&simClusters](const int& iSC, const int& jSC) {
       return simClusters[iSC].energy() > simClusters[jSC].energy();
     });
 
     // get a vector of all sim tracks, also store the total energy
     ROOT::Math::LorentzVector<ROOT::Math::PxPyPzE4D<float>> combinedmomentum;
-    for (const int &iSC : group) {
-        // there is currently only one track per sim clusters
-        combinedmomentum += simClusters[iSC].impactMomentum();
-        std::cout << "pos "<< iSC << ": " << simClusters[iSC].impactPoint() <<" eta "<< simClusters[iSC].impactPoint().Eta()
-              <<  " momentum " << simClusters[iSC].impactMomentum() << " vertexmomentum " << simClusters[iSC].p4()
-                        << std::endl;
+    for (const int& iSC : group) {
+      // there is currently only one track per sim clusters
+      combinedmomentum += simClusters[iSC].impactMomentum();
+      std::cout << "pos " << iSC << ": " << simClusters[iSC].impactPoint() << " eta "
+                << simClusters[iSC].impactPoint().Eta() << " momentum " << simClusters[iSC].impactMomentum()
+                << " vertexmomentum " << simClusters[iSC].p4() << std::endl;
     }
 
     // determine the pdg id using infos about common ancestors
     int pdgId = 78;  // TODO (this doesn't matter for now)
 
     ROOT::Math::LorentzVector<ROOT::Math::PxPyPzE4D<double>> combinedmomentumD(
-            combinedmomentum.x(),combinedmomentum.y(),combinedmomentum.z(),combinedmomentum.t()
-            );
+        combinedmomentum.x(), combinedmomentum.y(), combinedmomentum.z(), combinedmomentum.t());
     //still needs to be added
     SimTrack simtr(0, combinedmomentumD);
     SimCluster newsc({simtr}, pdgId);
@@ -586,30 +583,30 @@ void HGCTruthProducer::mergeSimClusters(
     newsc.setImpactMomentum(combinedmomentum);
     // create the cluster
     mergedSimClusters->emplace_back(newsc);
-    auto &cluster = mergedSimClusters->back();
+    auto& cluster = mergedSimClusters->back();
 
     // fill hits and energy fractions
     // since we merge, we have to care about duplicate hits and this might become drastically slow
     // therefore, use the default addRecHitAndFraction method for the first cluster, and then
     // loop over the remaining ones to invoke the slower but necessary addDuplicateRecHitAndFraction
 
-    double combined_time = 0, totalenergy=0;
-    for (const auto &hf : simClusters[group[0]].hits_and_fractions()) {
-        cluster.addRecHitAndFraction(hf.first, hf.second);
-        double en = simClusters[group[0]].impactMomentum().E(); //energy weighted time
-        totalenergy += en;
-        combined_time+=simClusters[group[0]].impactPoint().T()*en;
+    double combined_time = 0, totalenergy = 0;
+    for (const auto& hf : simClusters[group[0]].hits_and_fractions()) {
+      cluster.addRecHitAndFraction(hf.first, hf.second);
+      double en = simClusters[group[0]].impactMomentum().E();  //energy weighted time
+      totalenergy += en;
+      combined_time += simClusters[group[0]].impactPoint().T() * en;
     }
     for (int iiSC = 1; iiSC < (int)group.size(); iiSC++) {
-        int iSC = group[iiSC];
-        for (const auto &hf : simClusters[iSC].hits_and_fractions()) {
-            cluster.addDuplicateRecHitAndFraction(hf.first, hf.second);
-        }
-        double en = simClusters[iSC].impactMomentum().E(); //energy weighted time
-        totalenergy += en;
-        combined_time+=simClusters[iSC].impactPoint().T()*en;
+      int iSC = group[iiSC];
+      for (const auto& hf : simClusters[iSC].hits_and_fractions()) {
+        cluster.addDuplicateRecHitAndFraction(hf.first, hf.second);
+      }
+      double en = simClusters[iSC].impactMomentum().E();  //energy weighted time
+      totalenergy += en;
+      combined_time += simClusters[iSC].impactPoint().T() * en;
     }
-    combined_time/=totalenergy;
+    combined_time /= totalenergy;
     //recalculate entry position at first hit
     SimClusterTools sctools;
     sctools.setRechitTools(recHitTools_);
@@ -621,8 +618,6 @@ void HGCTruthProducer::mergeSimClusters(
     //get energy weighted center and lowest layer
     //
     //get lowest layer index
-
-
   }
 }
 

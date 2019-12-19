@@ -11,9 +11,9 @@ const unsigned int SimCluster::longLivedTag = 65536;
 SimCluster::SimCluster() {
   // No operation
 
-    impactPoint_ = math::XYZTLorentzVectorF(0,0,0,0);
-    impactMomentum_ = math::XYZTLorentzVectorF(0,0,0,0);
-    pdgId_=0;
+  impactPoint_ = math::XYZTLorentzVectorF(0, 0, 0, 0);
+  impactMomentum_ = math::XYZTLorentzVectorF(0, 0, 0, 0);
+  pdgId_ = 0;
 }
 
 SimCluster::SimCluster(const SimTrack &simtrk) {
@@ -37,7 +37,7 @@ SimCluster::SimCluster(const std::vector<SimTrack> &simtrks, int pdgId) {
     double sumPz = 0.;
     double sumE = 0.;
 
-    for (const SimTrack& t : simtrks) {
+    for (const SimTrack &t : simtrks) {
       addG4Track(t);
       sumPx += t.momentum().px();
       sumPy += t.momentum().py();
@@ -58,18 +58,15 @@ SimCluster::SimCluster(const std::vector<SimTrack> &simtrks, int pdgId) {
 SimCluster::~SimCluster() {}
 
 std::ostream &operator<<(std::ostream &s, SimCluster const &tp) {
-    s << "SC momentum(eta,phi,pt,m), q, ID, & Event #: " << tp.p4().Eta()
-            << ", " << tp.p4().Phi() << ", " << tp.p4().Pt() << ", "
-            << tp.p4().M() << " " << " " << tp.charge() << " " << tp.pdgId()
-            << " " << tp.eventId().bunchCrossing() << "."
-            << tp.eventId().event() << std::endl;
+  s << "SC momentum(eta,phi,pt,m), q, ID, & Event #: " << tp.p4().Eta() << ", " << tp.p4().Phi() << ", " << tp.p4().Pt()
+    << ", " << tp.p4().M() << " "
+    << " " << tp.charge() << " " << tp.pdgId() << " " << tp.eventId().bunchCrossing() << "." << tp.eventId().event()
+    << std::endl;
 
-    s << "Impact position (eta,phi,z,t) " << tp.impactPoint().Eta() << " "
-            << tp.impactPoint().Phi() << " " << tp.impactPoint().Z() << " "
-            << tp.impactPoint().M() << std::endl;
-    s << "Impact momentum (eta,phi,pt,M) " << tp.impactMomentum().Eta() << " "
-            << tp.impactMomentum().Phi() << " " << tp.impactMomentum().Pt()
-            << " " << tp.impactMomentum().M() << std::endl;
+  s << "Impact position (eta,phi,z,t) " << tp.impactPoint().Eta() << " " << tp.impactPoint().Phi() << " "
+    << tp.impactPoint().Z() << " " << tp.impactPoint().M() << std::endl;
+  s << "Impact momentum (eta,phi,pt,M) " << tp.impactMomentum().Eta() << " " << tp.impactMomentum().Phi() << " "
+    << tp.impactMomentum().Pt() << " " << tp.impactMomentum().M() << std::endl;
 
   for (SimCluster::genp_iterator hepT = tp.genParticle_begin(); hepT != tp.genParticle_end(); ++hepT) {
     s << " HepMC Track Momentum " << (*hepT)->momentum().rho() << std::endl;

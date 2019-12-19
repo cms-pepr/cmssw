@@ -92,7 +92,6 @@ using boost::vertex_name_t;
 
 //debug
 
-
 /* GRAPH DEFINITIONS
 
    The graphs represent the full decay chain.
@@ -144,13 +143,14 @@ class CaloTruthAccumulator : public DigiAccumulatorMixMod {
 public:
   explicit CaloTruthAccumulator(const edm::ParameterSet &config, edm::ProducerBase &mixMod, edm::ConsumesCollector &iC);
 
-  ~CaloTruthAccumulator(){
-      for (auto it = debughistos.begin(); it != debughistos.end(); it++ ){
-          TCanvas cv;
-          it->second.Draw("colz");
-          cv.Print(it->first+".pdf");
-      }
+  ~CaloTruthAccumulator() {
+    for (auto it = debughistos.begin(); it != debughistos.end(); it++) {
+      TCanvas cv;
+      it->second.Draw("colz");
+      cv.Print(it->first + ".pdf");
+    }
   }
+
 private:
   void initializeEvent(const edm::Event &event, const edm::EventSetup &setup) override;
   void accumulate(const edm::Event &event, const edm::EventSetup &setup) override;
@@ -173,10 +173,11 @@ private:
                    const edm::EventSetup &setup);
 
   /** @brief Assigns the coordinates of the associated SimTrack. These are wrong until CMSSW Geant stepping has been fixed! */
-  void assignSimClusterCoordinates(std::unique_ptr<SimClusterCollection>& , const std::vector<SimVertex> &,
-          const size_t previous_simclusters);
+  void assignSimClusterCoordinates(std::unique_ptr<SimClusterCollection> &,
+                                   const std::vector<SimVertex> &,
+                                   const size_t previous_simclusters);
   HGCalParticlePropagator prop_;
-  std::map< TString, TH2D>  debughistos;
+  std::map<TString, TH2D> debughistos;
 
   const std::string messageCategory_;
 
@@ -459,9 +460,8 @@ CaloTruthAccumulator::CaloTruthAccumulator(const edm::ParameterSet &config,
     iC.consumes<std::vector<PCaloHit>>(collectionTag);
   }
 
-  debughistos["misass_vs_energy"] = TH2D("misass_vs_energy","misass_vs_energy",15, 0, 20, 30, 0, 1);
-  debughistos["misass_vs_eta"]    = TH2D("misass_vs_eta","misass_vs_eta",15, 1.5, 3, 30, 0, 1);
-
+  debughistos["misass_vs_energy"] = TH2D("misass_vs_energy", "misass_vs_energy", 15, 0, 20, 30, 0, 1);
+  debughistos["misass_vs_eta"] = TH2D("misass_vs_eta", "misass_vs_eta", 15, 1.5, 3, 30, 0, 1);
 }
 
 void CaloTruthAccumulator::beginLuminosityBlock(edm::LuminosityBlock const &iLumiBlock, const edm::EventSetup &iSetup) {
@@ -573,7 +573,8 @@ void CaloTruthAccumulator::finalizeEvent(edm::Event &event, edm::EventSetup cons
 
   // save SimCluster history
   if (saveSimClusterHistory_) {
-    std::unique_ptr<std::vector<SimClusterHistory>> simClusterHistory = std::make_unique<std::vector<SimClusterHistory>>(simClusterHistory_);
+    std::unique_ptr<std::vector<SimClusterHistory>> simClusterHistory =
+        std::make_unique<std::vector<SimClusterHistory>>(simClusterHistory_);
     event.put(std::move(simClusterHistory), "MergedCaloTruth");
   }
 
@@ -595,10 +596,6 @@ void CaloTruthAccumulator::finalizeEvent(edm::Event &event, edm::EventSetup cons
 
   std::unordered_map<Index_t, float>().swap(m_detIdToTotalSimEnergy);
   std::unordered_multimap<Barcode_t, Index_t>().swap(m_simHitBarcodeToIndex);
-
-
-
-
 }
 
 template <class T>
@@ -717,7 +714,7 @@ void CaloTruthAccumulator::accumulateEvent(const T &event,
       put(vertexMothersProp, v.vertexId(), VertexProperty(&tracks[trackid_to_track_index[v.parentIndex()]], 0));
     }
   }
-  int previous_simclusters=output_.pSimClusters->size();//already added ones
+  int previous_simclusters = output_.pSimClusters->size();  //already added ones
   SimHitsAccumulator_dfs_visitor vis;
   depth_first_search(decay, visitor(vis));
   CaloParticle_dfs_visitor caloParticleCreator(
@@ -737,7 +734,7 @@ void CaloTruthAccumulator::accumulateEvent(const T &event,
       });
   depth_first_search(decay, visitor(caloParticleCreator));
 
-  assignSimClusterCoordinates(output_.pSimClusters , vertices, previous_simclusters);
+  assignSimClusterCoordinates(output_.pSimClusters, vertices, previous_simclusters);
 
 #if DEBUG
   boost::write_graphviz(std::cout,
@@ -791,53 +788,51 @@ void CaloTruthAccumulator::fillSimHits(std::vector<std::pair<DetId, const PCaloH
   }  // end of loop over InputTags
 }
 
-void CaloTruthAccumulator::assignSimClusterCoordinates(std::unique_ptr<SimClusterCollection>& scs,
-        const std::vector<SimVertex> & vs, const size_t previous_simclusters){
+void CaloTruthAccumulator::assignSimClusterCoordinates(std::unique_ptr<SimClusterCollection> &scs,
+                                                       const std::vector<SimVertex> &vs,
+                                                       const size_t previous_simclusters) {
+  std::cout << "popagate" << std::endl;
+  int misassigned = 0;
+  int totalhgcalinthisround = 0;
+  int novertex = 0;
 
-std::cout << "popagate" << std::endl;
-    int misassigned = 0;
-    int totalhgcalinthisround = 0;
-    int novertex = 0;
+  SimClusterTools sctools;
+  sctools.setRechitTools(recHitTools_);
 
-    SimClusterTools sctools;
-    sctools.setRechitTools(recHitTools_);
+  for (size_t isc = previous_simclusters; isc < scs->size(); isc++) {
+    auto &sc = scs->at(isc);
 
-    for(size_t isc = previous_simclusters; isc < scs->size(); isc++){
-        auto & sc = scs->at(isc);
+    sctools.recalculatePosition(sc, 0);
+    ROOT::Math::LorentzVector<ROOT::Math::PxPyPzE4D<float>> thispos = sc.impactPoint();
 
+    // std::cout << thispos <<" "<< thispos.eta() <<std::endl;
 
-        sctools.recalculatePosition(sc,0);
-        ROOT::Math::LorentzVector<ROOT::Math::PxPyPzE4D<float>> thispos = sc.impactPoint();
+    if (fabs(thispos.z()) > prop_.getHGCalZ()) {  //inside
+      sc.setImpactMomentum(sc.p4());
+    }
 
-        // std::cout << thispos <<" "<< thispos.eta() <<std::endl;
+    if (sc.g4Tracks().size()) {
+      bool try_propagation = false;
+      const auto &t = sc.g4Tracks().at(0);
+      const auto mom = t.momentum();
+      math::XYZTLorentzVectorF momentum(mom.x(), mom.y(), mom.z(), mom.t());
+      math::XYZTLorentzVectorF vertex(0, 0, 10000, 0);
+      if (t.vertIndex() >= (int)vs.size() || t.vertIndex() < 0) {
+        edm::LogWarning("CaloTruthAccumulator") << "no vertex associated to g4Track or vertex could not be found.";
+      } else {
+        const auto &pos = vs.at(t.vertIndex()).position();
+        vertex = math::XYZTLorentzVectorF(pos.x(), pos.y(), pos.z(), pos.t());
+        try_propagation = true;
+      }
+      sc.setImpactPoint(vertex);
+      sc.setImpactMomentum(momentum);
 
-        if(fabs(thispos.z())>prop_.getHGCalZ()){//inside
-            sc.setImpactMomentum(sc.p4());
-        }
+      if (try_propagation) {
+        auto oldvert = vertex;
+        prop_.propagate(vertex, momentum, t.charge());
 
-        if(sc.g4Tracks().size()){
-            bool try_propagation=false;
-            const auto& t = sc.g4Tracks().at(0);
-            const auto  mom = t.momentum();
-            math::XYZTLorentzVectorF momentum(mom.x(),mom.y(),mom.z(),mom.t());
-            math::XYZTLorentzVectorF vertex(0,0,10000,0);
-            if(t.vertIndex() >= (int)vs.size() || t.vertIndex() < 0){
-                edm::LogWarning("CaloTruthAccumulator") << "no vertex associated to g4Track or vertex could not be found.";
-            }
-            else{
-                const auto& pos = vs.at(t.vertIndex()).position();
-                vertex = math::XYZTLorentzVectorF(pos.x(),pos.y(),pos.z(),pos.t());
-                try_propagation = true;
-            }
-            sc.setImpactPoint(vertex);
-            sc.setImpactMomentum(momentum);
-
-            if(try_propagation){
-                auto oldvert = vertex;
-                prop_.propagate(vertex,momentum,t.charge());
-
-                if(fabs(vertex.eta()) > 1.5 && fabs(vertex.eta()) < 3.){
-                    /*
+        if (fabs(vertex.eta()) > 1.5 && fabs(vertex.eta()) < 3.) {
+          /*
                     std::cout << sc << std::endl;
                     std::cout << "momentum.p" << std::sqrt(momentum.Vect().Mag2()) << std::endl;
                     std::cout << "orig (eta,phi,z,t) "<< oldvert.eta()
@@ -847,35 +842,30 @@ std::cout << "popagate" << std::endl;
                     std::cout << "hitpos (eta,phi,z,t) "<< thispos.eta()
                                 << " " <<thispos.phi()<< " "  << thispos.z()<<  " "   << std::endl;
                                 */
-                    totalhgcalinthisround++;
-                    double error = reco::deltaR(oldvert.eta(), oldvert.phi(), vertex.eta(),vertex.phi() );
-                    if(error > 0.04)
-                        misassigned++;
+          totalhgcalinthisround++;
+          double error = reco::deltaR(oldvert.eta(), oldvert.phi(), vertex.eta(), vertex.phi());
+          if (error > 0.04)
+            misassigned++;
 
-                    debughistos["misass_vs_energy"].Fill(momentum.E(), error);
-                    debughistos["misass_vs_eta"].Fill(momentum.Eta(), error);
+          debughistos["misass_vs_energy"].Fill(momentum.E(), error);
+          debughistos["misass_vs_eta"].Fill(momentum.Eta(), error);
 
-                    vertex = math::XYZTLorentzVectorF(thispos.x(),thispos.y(),thispos.z(),vertex.t());
-                    sc.setImpactPoint(vertex);
-                    sc.setImpactMomentum(momentum);
-                }
-            }
-            else if(fabs(thispos.Eta()) > 1.5 && fabs(thispos.Eta()) < 3.){
-                totalhgcalinthisround++;
-            }
-
-
+          vertex = math::XYZTLorentzVectorF(thispos.x(), thispos.y(), thispos.z(), vertex.t());
+          sc.setImpactPoint(vertex);
+          sc.setImpactMomentum(momentum);
         }
-        else{
-            throw cms::Exception("Simcluster without genParticle or G4track");
-        }
+      } else if (fabs(thispos.Eta()) > 1.5 && fabs(thispos.Eta()) < 3.) {
+        totalhgcalinthisround++;
+      }
+
+    } else {
+      throw cms::Exception("Simcluster without genParticle or G4track");
     }
+  }
 
-    std::cout << "misassigned " << misassigned << " of " << totalhgcalinthisround << std::endl;
-    std::cout << "novertex    " << novertex << " of " << totalhgcalinthisround << std::endl;
-
+  std::cout << "misassigned " << misassigned << " of " << totalhgcalinthisround << std::endl;
+  std::cout << "novertex    " << novertex << " of " << totalhgcalinthisround << std::endl;
 }
-
 
 // Register with the framework
 DEFINE_DIGI_ACCUMULATOR(CaloTruthAccumulator);
