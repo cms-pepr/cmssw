@@ -57,7 +57,7 @@ private:
   G4LogicalVolume* detLV(const G4VTouchable*, int) const;
   void detectorLevel(const G4VTouchable*, int&, int*, G4String*) const;
 
-  bool testBeam_, putHistory_, doFineCalo_;
+  bool testBeam_, putHistory_, doFineCalo_, storeHGCBoundaryCross_;
   double eMin_, eMinFine_, eMinFinePhoton_;
   int lastTrackID_;
   std::vector<Detector> detectors_, fineDetectors_;
