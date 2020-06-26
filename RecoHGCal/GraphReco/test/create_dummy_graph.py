@@ -29,17 +29,17 @@ output_path = os.path.normpath(os.path.abspath(output_path))
 print("create dummy graph at {}".format(output_path))
 
 # shape constants
-n_rechits = 100
-n_features = 10
-n_showers = 15
+n_rechits = 10000
+n_features = 12
+n_pfcandidates = 15
 
 # create the dummy graph
 x_t = tf.placeholder(tf.float32, [None, n_rechits, n_features], name="input")
 x_reshaped_t = tf.reshape(x_t, [-1, n_rechits * n_features])
-W_t = tf.Variable(0.01 * tf.ones([n_rechits * n_features, n_rechits * n_showers], tf.float32))
-b_t = tf.Variable(0.01 * tf.ones([n_rechits * n_showers], tf.float32))
+W_t = tf.Variable(0.01 * tf.ones([n_rechits * n_features, n_pfcandidates * 4], tf.float32))
+b_t = tf.Variable(0.01 * tf.ones([n_pfcandidates * 4], tf.float32))
 z_t = tf.add(tf.matmul(x_reshaped_t, W_t), b_t)
-y_t = tf.reshape(z_t, [-1, n_rechits, n_showers], name="output")
+y_t = tf.reshape(z_t, [-1, n_pfcandidates, 4], name="output")
 
 # initialize session and variables
 sess = tf.Session()

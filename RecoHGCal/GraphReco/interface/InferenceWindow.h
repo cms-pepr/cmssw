@@ -28,7 +28,7 @@ public:
 
     void evaluate(tensorflow::Session* sess);
 
-    void getOutput() const{}//needs output format etc.
+    tensorflow::Tensor getOutput();
 
     void flattenRechitFeatures();
 
@@ -40,12 +40,16 @@ private:
 
     InferenceWindow(){}
     //
-    //Inference
-    tensorflow::Tensor inputTensor;
-    tensorflow::NamedTensorList inputTensorList;
-    tensorflow::Tensor outputTensor;
+    //Inference  
+    tensorflow::Tensor inputTensor_;
+    tensorflow::NamedTensorList inputTensorList_;
+    tensorflow::Tensor outputTensor_;
+    std::string inputTensorName_;
     std::string outputTensorName_;
 
+    size_t padSize_;
+    size_t nFeatures_;
+    bool batchedModel_;
 };
 
 

@@ -13,7 +13,7 @@ import math
 import FWCore.ParameterSet.Config as cms
 
 
-windowInference = cms.EDAnalyzer("WindowInference",
+windowInference = cms.EDProducer("WindowInference",
     # the collections of rechits to use
     recHitCollections=cms.VInputTag(
         cms.InputTag("HGCalRecHit", "HGCEERecHits"),
@@ -25,7 +25,7 @@ windowInference = cms.EDAnalyzer("WindowInference",
     # whether or not the model in the graph expects a batch dimension
     batchedModel=cms.bool(True),
     # dimension of the padding of the second dimension, i.e., the rec hits themselves
-    padSize=cms.uint32(100),
+    padSize=cms.uint32(10000),
     # graph to the trained model
     graphPath=cms.string("graph.pb"),
     

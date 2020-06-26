@@ -40,7 +40,7 @@ process = cms.Process("HGR", Phase2C8)
 # standard sequences and modules
 process.load("Configuration.StandardSequences.Services_cff")
 process.load("FWCore.MessageService.MessageLogger_cfi")
-process.load("Configuration.Geometry.GeometryExtended2023D41Reco_cff")
+process.load("Configuration.Geometry.GeometryExtended2026D41Reco_cff")
 process.load("Configuration.StandardSequences.FrontierConditions_GlobalTag_cff")
 
 # minimal configuration

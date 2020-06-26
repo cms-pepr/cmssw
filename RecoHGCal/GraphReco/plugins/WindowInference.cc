@@ -1,7 +1,8 @@
 /*
  * CMSSW plugin that performs a Window-based inference of networks using RecHits.
  *
- * Author: Marcel Rieger <marcel.rieger@cern.ch>
+ * Authors: Marcel Rieger <marcel.rieger@cern.ch>
+ *          Gerrit Van Onsem <Gerrit.Van.Onsem@cern.ch>
  */
 
 #include <memory>
@@ -9,7 +10,7 @@
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
-#include "FWCore/Framework/interface/stream/EDAnalyzer.h"
+#include "FWCore/Framework/interface/stream/EDProducer.h"
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/Utilities/interface/Exception.h"
@@ -21,6 +22,12 @@
 #include "PhysicsTools/TensorFlow/interface/TensorFlow.h"
 
 #include "RecoHGCal/GraphReco/interface/InferenceWindow.h"
+
+#include "DataFormats/Common/interface/View.h"
+
+#include "DataFormats/ParticleFlowCandidate/interface/PFCandidateFwd.h"
+#include "DataFormats/ParticleFlowCandidate/interface/PFCandidate.h" 
+#include "DataFormats/Candidate/interface/LeafCandidate.h"
 
 
 // macros for simplified logs
@@ -41,7 +48,7 @@ struct WindowInferenceCache {
     std::atomic<tensorflow::GraphDef*> graphDef;
 };
 
-class WindowInference: public edm::stream::EDAnalyzer<
+class WindowInference: public edm::stream::EDProducer<
         edm::GlobalCache<WindowInferenceCache> > {
  public:
     explicit WindowInference(const edm::ParameterSet&,
@@ -56,7 +63,7 @@ class WindowInference: public edm::stream::EDAnalyzer<
  private:
     void beginStream(edm::StreamID);
     void endStream();
-    void analyze(const edm::Event&, const edm::EventSetup&);
+    void produce(edm::Event&, const edm::EventSetup&) override;
 
     void fillWindows(const edm::Event&);
 
@@ -144,9 +151,10 @@ WindowInference::WindowInference(const edm::ParameterSet& config,
                 consumes<HGCRecHitCollection>(recHitCollection));
     }
 
+    produces<reco::PFCandidateCollection>();
+
     // mount the graphDef stored in windowInferenceCache onto the session
-    //FIXME
-    // session_ = tensorflow::createSession(windowInferenceCache->graphDef);
+    session_ = tensorflow::createSession(windowInferenceCache->graphDef);
 }
 
 WindowInference::~WindowInference() {
@@ -155,33 +163,84 @@ WindowInference::~WindowInference() {
 
 void WindowInference::beginStream(edm::StreamID streamId) {
     windows_ = InferenceWindow::createWindows(nPhiSegments_,nEtaSegments_,minEta_,maxEta_,etaFrameWidth_,phiFrameWidth_);
+
+    // FIXME, make configurable?
+    for(auto& w: windows_)
+        w.setMode(WindowBase::useRechits);
 }
 
 void WindowInference::endStream() {
     // close the session
-    //FIXME
-    // tensorflow::closeSession(session_);
-    session_ = nullptr;
+    tensorflow::closeSession(session_);
+    //session_ = nullptr;
 
 
     windows_.clear();
 }
 
-void WindowInference::analyze(const edm::Event& event,
-        const edm::EventSetup& setup) {
+void WindowInference::produce(edm::Event& event, const edm::EventSetup& setup) {
+
     recHitTools_.getEventSetup(setup);
 
 
     // fill rechits into windows
     fillWindows(event);
 
+    // one tensor per window
+    std::vector<tensorflow::Tensor> windowoutputs;
     // run the evaluation per window
     for (auto & window : windows_) {
         window.evaluate(session_);
+        windowoutputs.push_back(window.getOutput());
     }
 
     // reconstruct showers using all windows and put them into the event
     //reconstructShowers();
+
+
+    // making PF candidate collection
+    auto candidates = std::make_unique<reco::PFCandidateCollection>();
+    for (unsigned int i=0; i<windowoutputs.size(); i++) {
+        //loop over windows
+        //std::cout << "Window " << i << std::endl;
+
+        // check and print the output for ith window 
+        float* data = windowoutputs[i].flat<float>().data();
+        //std::cout << " outputs shape dimensions: " << windowoutputs[i].shape().dims() << std::endl;
+        //std::cout << "   outputs shape 0: " << windowoutputs[i].shape().dim_size(0) << std::endl;
+        //std::cout << "   outputs shape 1: " << windowoutputs[i].shape().dim_size(1) << std::endl;
+        //std::cout << "   outputs shape 2: " << windowoutputs[i].shape().dim_size(2) << std::endl;
+        
+        // FIXME: convert E, px, py, pz to XYZT maybe?
+        //        for now: assume the lorentzvector is in the right format already (dummy)
+        float X = -9999., Y=-9999., Z=-9999., T=-9999.;
+        // loop over particles reconstructed in the window
+        for (int k = 0; k < windowoutputs[i].shape().dim_size(1); k++) { 
+            //std::cout << " particle " << k << std::endl;
+            //const auto abs_pdg_id = -9999;
+            //const auto charge = -9999;
+            const auto charge = 0; // FIXME!
+            X = *data;
+            //std::cout << "   four-vector X: " << X << std::endl;
+            data++;
+            Y = *data;
+            //std::cout << "   four-vector Y: " << Y << std::endl;
+            data++;
+            Z = *data;
+            //std::cout << "   four-vector Z: " << Z << std::endl;
+            data++;
+            T = *data;
+            //std::cout << "   four-vector T: " << T << std::endl;
+            const auto& four_mom = math::XYZTLorentzVector(X,Y,Z,T);
+            reco::PFCandidate::ParticleType part_type = reco::PFCandidate::X;
+            candidates->emplace_back(charge, four_mom, part_type);
+        }
+
+    }
+
+    event.put(std::move(candidates));
+
+
 
     // clear all windows
     for (auto& window : windows_) {
@@ -197,10 +256,44 @@ void WindowInference::fillWindows(const edm::Event& event) {
         throw cms::Exception("NoWindows") << "no windows initialized";
     }
 
+    //FIXME
     //Window::mode windowmode = windows_.at(0).getMode();
     // skip layer cluster or rechit loop accordingly
 
-    //FIXME
+
+    // copied block from window ntupler code
+    // get rechits, get positions and merge collections
+    std::vector<HGCRecHitWithPos> allrechits;
+    for (auto & token : recHitTokens_) {
+       for (const auto& rh : event.get(token)) {
+           HGCRecHitWithPos rhp = { const_cast<HGCRecHit*>(&rh), recHitTools_.getPosition(rh.detid()) };
+           allrechits.push_back(rhp);
+       }
+    }
+    // sort according to the energy
+    std::sort(allrechits.begin(), allrechits.end(), 
+        [](const HGCRecHitWithPos& rh1, const HGCRecHitWithPos& rh2) 
+            { return rh1.hit->energy() > rh2.hit->energy();});
+
+    
+    // fills a vector of the specified size with zeroes (entries will be 0 if rechit is not filled, and 1 if it is filled)
+    std::vector<size_t> filledrechits(allrechits.size(),0);
+
+    // FIXME: make number of features configurable?
+    size_t nfeatures = 12;
+
+    for (auto & window : windows_) {
+        //fill rechits in this window
+        for(size_t it=0;it<allrechits.size();it++) {
+           if(filledrechits.at(it)>3) continue;
+           if(window.maybeAddRecHit(allrechits.at(it)))
+               filledrechits.at(it)++;
+        }
+
+        // TF interface setup needs to be called before fillFeatureArrays, in order to do the zero padding
+        window.setupTFInterface(padSize_, nfeatures, batchedModel_, inputTensorName_, outputTensorName_);
+        window.fillFeatureArrays(); 
+    }
 
 
 }
