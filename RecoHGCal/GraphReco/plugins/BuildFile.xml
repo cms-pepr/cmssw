@@ -10,6 +10,8 @@
 <use name="DataFormats/ParticleFlowCandidate"/>
 <use name="DataFormats/HGCalReco"/>
 <use name="HGCSimTruth/HGCSimTruth" />
+<use name="HeterogeneousCore/SonicCore"/>
+<use name="HeterogeneousCore/SonicTriton"/>
 <use name="root"/>
 
 <use name="RecoHGCal/GraphReco"/>

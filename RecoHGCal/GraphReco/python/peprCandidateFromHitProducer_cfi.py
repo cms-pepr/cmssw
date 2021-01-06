@@ -21,10 +21,19 @@ peprCandidateFromHitProducer = cms.EDProducer("peprCandidateFromHitProducer",
         cms.InputTag("HGCalRecHit", "HGCHEBRecHits"),
     ),
     tracks = cms.InputTag("generalTracks"),
-    tritonScript=cms.FileInPath("RecoHGCal/GraphReco/test/cmssw_oc_forward_client.sh"),
-    inpipeName=cms.string("arrayspipe"),
-    outpipeName=cms.string("arrayspipe_pred"),
     minCandEnergy=cms.double(1.0),
     minEta=cms.double(1.6),
-    maxEta=cms.double(3.0)  
+    maxEta=cms.double(3.0),
+    Client = cms.PSet(
+        mode = cms.string("PseudoAsync"),
+        batchSize = cms.untracked.uint32(1),
+        address = cms.untracked.string("dockerbuild.cern.ch"),
+        port = cms.untracked.uint32(8001),
+        timeout = cms.untracked.uint32(30),
+        modelName = cms.string("hgcal_oc_reco"),
+        modelVersion = cms.string(""),
+        outputs = cms.untracked.vstring("output"),
+        verbose = cms.untracked.bool(False),
+        allowedTries = cms.untracked.uint32(0),
+    )
 )

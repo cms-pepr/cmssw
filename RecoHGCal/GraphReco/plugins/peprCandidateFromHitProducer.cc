@@ -17,7 +17,6 @@
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/Frameworkfwd.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
-#include "FWCore/Framework/interface/stream/EDProducer.h"
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 #include "FWCore/Utilities/interface/Exception.h"
@@ -40,6 +39,10 @@
 
 #include "DataFormats/HGCalReco/interface/Trackster.h"
 
+#include "HeterogeneousCore/SonicCore/interface/SonicEDProducer.h"
+#include "HeterogeneousCore/SonicTriton/interface/TritonClient.h"
+
+
 using namespace ticl;
 
 // macros for simplified logs
@@ -52,20 +55,17 @@ using namespace ticl;
 #define ERROR std::cout << "peprCandidateFromHitProducer ERROR  : "
 
 
-class peprCandidateFromHitProducer: public edm::stream::EDProducer<> {
+class peprCandidateFromHitProducer: public SonicEDProducer<TritonClient> {    
  public:
-    explicit peprCandidateFromHitProducer(const edm::ParameterSet&);
+    explicit peprCandidateFromHitProducer(edm::ParameterSet const&);
     ~peprCandidateFromHitProducer();
 
  private:
-    void beginStream(edm::StreamID);
-    void endStream();
-    void produce(edm::Event&, const edm::EventSetup&) override;
+    void acquire(edm::Event const&, edm::EventSetup const&, Input&) override;
+    void produce(edm::Event&, edm::EventSetup const&, Output const&) override;
 
     void fillWindows(const edm::Event&);
-    void writeInputArrays(const std::vector<std::vector<float> >&);
-    void readOutputArrays(std::vector<std::vector<float> >&);
-    pid_t start_background(std::string);
+    void readOutput(Output const&, std::vector<std::vector<float> >&);
 
     // options
     std::vector<edm::InputTag> recHitCollections_;
@@ -73,11 +73,6 @@ class peprCandidateFromHitProducer: public edm::stream::EDProducer<> {
     // tokens
     std::vector<edm::EDGetTokenT<HGCRecHitCollection> > recHitTokens_;  
     edm::EDGetTokenT<edm::View<reco::Track>> tracksToken_;
-
-    std::string tritonScript_;
-    std::string inpipeName_;
-    std::string outpipeName_;
-    std::string containerPIDName_;
 
     // rechit tools
     hgcal::RecHitTools recHitTools_;
@@ -97,12 +92,9 @@ class peprCandidateFromHitProducer: public edm::stream::EDProducer<> {
 };
 
 
-peprCandidateFromHitProducer::peprCandidateFromHitProducer(const edm::ParameterSet& config) :
+peprCandidateFromHitProducer::peprCandidateFromHitProducer(edm::ParameterSet const& config) : SonicEDProducer<TritonClient>(config),
         recHitCollections_(config.getParameter<std::vector<edm::InputTag> >("recHitCollections")), 
         tracksToken_(consumes<edm::View<reco::Track>>(config.getParameter<edm::InputTag>("tracks"))),
-        tritonScript_(config.getParameter<edm::FileInPath>("tritonScript").fullPath()), 
-        inpipeName_(config.getParameter<std::string>("inpipeName")),
-        outpipeName_(config.getParameter<std::string>("outpipeName")),
         minCandEnergy_(config.getParameter<double>("minCandEnergy")),
         //FIXME: actually these are all not needed if windows are created in the constructor!
         minEta_(config.getParameter<double>("minEta")),
@@ -120,153 +112,164 @@ peprCandidateFromHitProducer::peprCandidateFromHitProducer(const edm::ParameterS
     nEtaSegments_ = 1;
     nPhiSegments_ = 1;
 
-
     produces<reco::PFCandidateCollection>();
     //produces<std::vector<Trackster>>();
 
-    int pid = getpid();
-    char * mypid = (char*)malloc(6);
-    sprintf(mypid, "%d", pid);
-    //std::cout << "Process ID of producer: " << mypid << std::endl;
-    inpipeName_ = std::string(mypid) + "_" + inpipeName_;
-    outpipeName_ = std::string(mypid) + "_" + outpipeName_;
-    containerPIDName_ = "containerpid";
-    //for local testing (e.g. when one does not know the pid in advance)
-    //inpipeName_ = "TEST_" + inpipeName_;
-    //outpipeName_ = "TEST_" + outpipeName_;
-
-
-    //launch script(s) to work with Triton clients
-    //https://github.com/cms-pepr/HGCalML/tree/master/triton
-    
-    //within the client script, the container is also started in the background and its process ID is stored for later kill command in destructor
-    std::string clientcommand = tritonScript_ + " " + inpipeName_ + " " + containerPIDName_ + " &";
-    system(clientcommand.data());
-    //std::cout << "  Forward client command executed" << std::endl;
-
-}
-
-peprCandidateFromHitProducer::~peprCandidateFromHitProducer() {
-
-    std::string containerpid_location="/dev/shm/" + containerPIDName_;
-    int containerpid;
-    std::ifstream containerpidfile;
-    containerpidfile.open(containerpid_location);
-    containerpidfile >> containerpid;
-    //std::cout << "Process ID of triton container being killed: " << containerpid << std::endl;
-    system(("kill -9 " + std::to_string(containerpid)).data());
-}
-
-
-void peprCandidateFromHitProducer::beginStream(edm::StreamID streamId) {
     windows_ = InferenceWindow::createWindows(nPhiSegments_,nEtaSegments_,minEta_,maxEta_,etaFrameWidth_,phiFrameWidth_);
-
     // FIXME, make configurable?
     for(auto& w: windows_)
         w.setMode(WindowBase::useRechits);
+
+    //std::cout << "  Starting server" << std::endl;
+    //system("/afs/cern.ch/work/g/gvonsem/public/HGCAL/ML/pepr_11_2_0_pre9/CMSSW_11_2_0_pre9/src/HeterogeneousCore/SonicTriton/test/triton start");
 }
 
-void peprCandidateFromHitProducer::endStream() {
 
-    //windows_.clear();
+peprCandidateFromHitProducer::~peprCandidateFromHitProducer() {
+
+    //std::cout << "  Stopping server" << std::endl;
+    //system("/afs/cern.ch/work/g/gvonsem/public/HGCAL/ML/pepr_11_2_0_pre9/CMSSW_11_2_0_pre9/src/HeterogeneousCore/SonicTriton/test/triton stop");
 }
 
-void peprCandidateFromHitProducer::produce(edm::Event& event, const edm::EventSetup& setup) {
+
+void peprCandidateFromHitProducer::acquire(edm::Event const& iEvent, edm::EventSetup const& iSetup, Input& iInput) {
+
+    //INFO << "Acquire method" << std::endl;
+
+    edm::ESHandle<CaloGeometry> geom;
+    iSetup.get<CaloGeometryRecord>().get(geom);
+    recHitTools_.setGeometry(*geom);
+
     // fill rechits into windows
-    fillWindows(event);
+    fillWindows(iEvent);
 
-    //vector (from multiple windows) of vector of ~ OC candidates
-    std::vector< std::vector<std::vector<float> > > windowoutputs; 
-    
-    // run the evaluation per window
     std::vector<std::vector<float> >  hitFeatures;
+    //vector of number of hits per window
+    std::vector<int> nhitsWindow; 
+
     for (auto & window : windows_) {
-        //std::cout << "New window " << std::endl;
 
-        hitFeatures = window.getHitFeatures();
-        //std::cout << "   hitFeatures size = " << hitFeatures.size() << std::endl;
-        //std::cout << "      number of features per hit = " << hitFeatures[0].size() << std::endl;
+        std::cout << " New window " << std::endl;
 
-        writeInputArrays(hitFeatures);
- 
-        //inner vector is regressed energy, 2D position, and time (total 4 elements)
-        std::vector<std::vector<float> >  candidates;
-        readOutputArrays(candidates); 
-
-        windowoutputs.push_back( candidates );
+        nhitsWindow.push_back(window.getHitFeatures().size());
+        
+        //append vector to previous vector
+        hitFeatures.insert(hitFeatures.end(),window.getHitFeatures().begin(),window.getHitFeatures().end());
+        std::cout << "   hitFeatures size = " << hitFeatures.size() << std::endl;
+        std::cout << "      number of features per hit = " << hitFeatures[0].size() << std::endl;
 
         //break; //if quickly testing just one window
     }
 
+    //set shapes
+    auto& input1 = iInput.at("input_1");
+    //input_1 has dims:[ -1, 9 ], this setShape command changes the variable dimension at location 0 to the total number of rechits in the windows
+    input1.setShape(0, hitFeatures.size()); 
+    auto data1 = std::make_shared<TritonInput<float>>(1);
+    auto& vdata1 = (*data1)[0];
+    vdata1.reserve(input1.sizeShape());
+
+    std::cout << " input1.sizeShape = " << input1.sizeShape() << std::endl;
+        
+    auto& input2 = iInput.at("input_2");
+    input2.setShape(0, hitFeatures.size()); 
+    auto data2 = std::make_shared<TritonInput<int64_t>>(1);
+    auto& vdata2 = (*data2)[0];
+    vdata2.reserve(input2.sizeShape());
+
+    std::cout << " input2.sizeShape = " << input2.sizeShape() << std::endl;
+        
+    //fill first input: total list of rechits of all windows
+    for (size_t i=0; i<hitFeatures.size(); i++) {
+        for (size_t j=0; j<hitFeatures[i].size(); j++) {
+            vdata1.push_back(hitFeatures[i][j]);
+        }
+    }
+
+    //fill second input; this is the row splits: for two windows it is an array (of length the number of rechits in the window) of zeroes, 
+    //except the 2nd element is nrechits of first window, the 3rd element is nrechits of first+second window, 
+    //and the last element is 3 (the length of the non-zero-padded array)
+    for (unsigned i = 0; i < input2.sizeShape(); ++i) {
+        vdata2.push_back(0);
+    }
+    for (unsigned i = 0; i < nhitsWindow.size(); ++i) {
+        vdata2[i+1] = vdata2[i] + int64_t(nhitsWindow[i]);
+    }
+    vdata2[hitFeatures.size()-1] = int64_t(nhitsWindow.size()+1);
+
+    // convert to server format
+    input1.toServer(data1);
+    input2.toServer(data2);
+
+    std::cout << " window input sent" << std::endl;
+}
+
+
+void peprCandidateFromHitProducer::produce(edm::Event& iEvent, edm::EventSetup const& iSetup, Output const& iOutput) {
+
+    //INFO << "Produce method" << std::endl;
+ 
+    //inner vector is regressed energy, 2D position, and time (total 4 elements)
+    std::vector<std::vector<float> >  candidates;
+
+    readOutput(iOutput,candidates); 
 
     // making candidate collection
     auto pfcandidates = std::make_unique<reco::PFCandidateCollection>();
     //std::cout << "Creating PF candidates " << std::endl;
+    float E=-9999., X = -9999., Y=-9999., Z=-9999.;
 
-    for (size_t i=0; i<windowoutputs.size(); i++) {
+    // loop over particles reconstructed in the current window
+    for(size_t j=0;j<candidates.size();j++) {   
 
-        //loop over windows
-        //std::cout << " Window " << i << std::endl;
+        //const auto abs_pdg_id = -9999;
+        const auto charge = 0; // FIXME
+                 
+        E = candidates[j][0];
+        //std::cout << "  E before cut = " << E << std::endl;
 
-        float E=-9999., X = -9999., Y=-9999., Z=-9999.;
+        //temporary lower threshold on energy of candidates
+        if(E < minCandEnergy_) continue;
+        
+        std::cout << " particle " << j << std::endl;
 
-        // loop over particles reconstructed in the current window
-        for(size_t j=0;j<windowoutputs[i].size();j++) {
+        X = candidates[j][1];
+        Y = candidates[j][2];
+        Z = candidates[j][3];
+        std::cout << "  (X,Y,Z,E) = " << "(" << X << "," << Y << "," << Z << "," << E << ")" << std::endl;
 
-            //std::cout << " particle " << j << std::endl;
+        //block inspired by calcP4 method in TICL TracksterP4FromEnergySum plugin
+        //below assuming (0,0,0) as vertex
+        //starts from 'position (X,Y,Z)'
+        math::XYZVector direction(X, Y, Z);
+        direction = direction.Unit();
+        direction *= E;
+        math::XYZTLorentzVector cartesian(direction.X(), direction.Y(), direction.Z(), E);
+        //// Convert px, py, pz, E vector to CMS standard pt/eta/phi/m vector
+        reco::Candidate::LorentzVector p4(cartesian);
 
-            //const auto abs_pdg_id = -9999;
-            const auto charge = 0; // FIXME
-                     
-            //inner index as filled in readOutputArrays
-            E = windowoutputs[i][j][0];
+        // //Alternative calculation as check
+        // float R = std::sqrt(X*X + Y*Y + Z*Z);
+        // float px = E * X / R;
+        // float py = E * Y / R;
+        // float pz = E * Z / R;
+        // std::cout << "  (px,py,pz) = " << "(" << px << "," << py << "," << pz << ")" << std::endl;
 
-            //temporary lower threshold on energy of candidates
-            if(E < minCandEnergy_) continue;
-
-            X = windowoutputs[i][j][1];
-            Y = windowoutputs[i][j][2];
-            Z = windowoutputs[i][j][3];
-
-            //block inspired by calcP4 method in TICL TracksterP4FromEnergySum plugin
-            //below assuming (0,0,0) as vertex
-            //starts from 'position (X,Y,Z)'
-            math::XYZVector direction(X, Y, Z);
-            direction = direction.Unit();
-            direction *= E;
-            math::XYZTLorentzVector cartesian(direction.X(), direction.Y(), direction.Z(), E);
-            //// Convert px, py, pz, E vector to CMS standard pt/eta/phi/m vector
-            reco::Candidate::LorentzVector p4(cartesian);
-
-            // //Alternative calculation as check
-            // float R = std::sqrt(X*X + Y*Y + Z*Z);
-            // float px = E * X / R;
-            // float py = E * Y / R;
-            // float pz = E * Z / R;
-            // std::cout << "  (px,py,pz) = " << "(" << px << "," << py << "," << pz << ")" << std::endl;
-
-            const auto& four_mom = p4;
-            //std::cout << "    PF particle energy " << four_mom.E() << ", Px = " << four_mom.Px() << ", Py = " << four_mom.Py() << ", Pz = " << four_mom.Pz() << std::endl;
-            reco::PFCandidate::ParticleType part_type = reco::PFCandidate::X;
-            pfcandidates->emplace_back(charge, four_mom, part_type);
-
-        }
+        const auto& four_mom = p4;
+        std::cout << "    PF particle energy " << four_mom.E() << ", Px = " << four_mom.Px() << ", Py = " << four_mom.Py() << ", Pz = " << four_mom.Pz() << std::endl;
+        reco::PFCandidate::ParticleType part_type = reco::PFCandidate::X;
+        pfcandidates->emplace_back(charge, four_mom, part_type);
 
     }
 
-
-
-    event.put(std::move(pfcandidates));
-
-    //std::cout << "Results produced and put in event" << std::endl;
-
+    iEvent.put(std::move(pfcandidates));
+    std::cout << " Results produced and put in event" << std::endl;
 
     // clear all windows
     for (auto& window : windows_) {
         window.clear();
     }
-
-    //std::cout << "Windows cleared" << std::endl;
+    std::cout << " Windows cleared" << std::endl;
 }
 
 
@@ -277,7 +280,7 @@ void peprCandidateFromHitProducer::fillWindows(const edm::Event& event) {
         throw cms::Exception("NoWindows") << "no windows initialized";
     }
     
-    //std::cout << "Number of windows = " << windows_.size() << std::endl;
+    std::cout << "Number of windows = " << windows_.size() << std::endl;
     
     // copied block from window ntupler code
     // get rechits, get positions and merge collections
@@ -288,15 +291,16 @@ void peprCandidateFromHitProducer::fillWindows(const edm::Event& event) {
            allrechits.push_back(rhp);
        }
     }
+
     // sort according to the energy
     std::sort(allrechits.begin(), allrechits.end(), 
         [](const HGCRecHitWithPos& rh1, const HGCRecHitWithPos& rh2) 
             { return rh1.hit->energy() > rh2.hit->energy();});
 
-    
+    std::cout << " rechits size: " << allrechits.size() << std::endl;
+
     // fills a vector of the specified size with zeroes (entries will be 0 if rechit is not filled, and 1 if it is filled)
     std::vector<size_t> filledrechits(allrechits.size(),0);
-
 
     for (auto & window : windows_) {
         //fill rechits in this window
@@ -309,116 +313,59 @@ void peprCandidateFromHitProducer::fillWindows(const edm::Event& event) {
         window.fillFeatureArrays();
     }
 
-
+    std::cout << " windows filled" << std::endl;
 }
 
 
-void peprCandidateFromHitProducer::writeInputArrays(const std::vector<std::vector<float> >& hitFeatures) {
+void peprCandidateFromHitProducer::readOutput(Output const& iOutput, std::vector<std::vector<float> >& candidates) {
 
-    std::string inpipeRAM = "/dev/shm/" + inpipeName_; //write in RAM
-    //std::string inpipeRAM = inpipeName_; //do not write in RAM (local testing)
+    const auto& output1 = iOutput.at("output");
+    // convert from server format
+    const auto& tmp = output1.fromServer<float>();
 
-    //wait until pipe is open
-    std::cout << "Checking if pipe is open..." << std::endl;
-    bool pipe_open = false;
-    while(!pipe_open) {
-        struct stat buf;
-        if (stat(inpipeRAM.c_str(), &buf) != -1)
-        {
-            std::cout << "   Pipe open --> proceed" << std::endl;
-            pipe_open = true;
-        }
-    }
+    std::cout << "output1.shape()[0] = " << output1.shape()[0] << std::endl;
+    std::cout << "output1.shape()[1] = " << output1.shape()[1] << std::endl; 
 
-    std::ofstream inputArrayStream;
-    inputArrayStream.open(inpipeRAM.c_str(), std::ofstream::out | std::ofstream::app);
-    inputArrayStream.flush();
-    //std::cout << "     inpipeRAM = " << inpipeRAM << std::endl;
+    for (int i = 0; i < output1.shape()[0]; ++i) {
+      //std::cout << "output " << i << ": ";
+      if(output1.shape()[1] == 16 || output1.shape()[1] == 17) {
 
-    inputArrayStream << std::setprecision(std::numeric_limits<float>::digits10 + 1) << std::scientific;
-    for (size_t i=0; i<hitFeatures.size(); i++) {
-
-        for (size_t j=0; j<hitFeatures[i].size(); j++) {
-            inputArrayStream << hitFeatures[i][j] << " ";
-        }
-        inputArrayStream << "\n";
-    }
-
-    inputArrayStream.close();
-}
-
-
-void peprCandidateFromHitProducer::readOutputArrays(std::vector<std::vector<float> >& candidates) {
-
-    std::string outpipeRAM = "/dev/shm/" + outpipeName_; //read from RAM
-    //std::string outpipeRAM = outpipeName_; //do not read from RAM (local testing)
-
-    std::ifstream outputArrayStream;
-    //outputArrayStream.open(outpipeRAM.c_str(), std::ofstream::out | std::ofstream::app);
-    outputArrayStream.open(outpipeRAM.c_str());
-    //std::cout << "     outpipeRAM = " << outpipeRAM << std::endl;
-
-    std::string line;
-    if(outputArrayStream.is_open()) {
-        //std::cout << "Output array file opened!" << std::endl;
-        while ( true )   
-        {
-            getline (outputArrayStream,line);
-            //std::cout << line << '\n';
-
-            if(line.empty()){
-                break;
+            std::vector<float> fulloutput;
+            for (int j = 0; j < output1.shape()[1]; ++j) {                   
+                fulloutput.push_back(tmp[0][output1.shape()[1] * i + j]); 
             }
+            //std::cout << "\n";
 
-            // //split line according to spaces
-            std::istringstream iss(line);
-            std::vector<std::string> values(std::istream_iterator<std::string>{iss},
-                                 std::istream_iterator<std::string>());
+            float E = -9999., X = -9999., Y = -9999., Z = -9999., Xrel = -9999., Yrel = -9999.; //T = -9999.;
 
-            std::string energy_str, X_str, Y_str, Z_str, Xrel_str, Yrel_str; //T_str;
-            float E = -9999., X = -9999., Y = -9999., Z = -9999.; //T = -9999.;
+            //input rechit position
+            X = fulloutput[5];
+            Y = fulloutput[6];
+            Z = fulloutput[7];
+            E = fulloutput[10];
+            //values are relative to input rechit position
+            Xrel = fulloutput[11];
+            Yrel = fulloutput[12];
+            //FIXME: is T also relative to T of rechit? Not used for now
+            //T = values[13]; 
 
-            if(values.size() == 16 || values.size() == 17) {
+            X = X + Xrel;
+            Y = Y + Yrel;
 
-                //input rechit position
-                X_str = values[5];
-                Y_str = values[6];
-                Z_str = values[7];
-
-                energy_str = values[10];
-                //values are relative to input rechit position
-                Xrel_str = values[11];
-                Yrel_str = values[12];
-                //FIXME: is T also relative to T of rechit? Not used for now
-                //T_str = values[13]; 
-
-                E = std::stof(energy_str);
-                X = std::stof(X_str) + std::stof(Xrel_str);
-                Y = std::stof(Y_str) + std::stof(Yrel_str);
-
-                //positive Z of rechit means Z = 320 cm (as regressed X,Y is measured on HGCAL surface)
-                if ( std::stof(Z_str) > 0 ) Z = 320.;  //in cm
-                else Z = -320.;   //in cm
+            //positive Z of rechit means Z = 320 cm (as regressed X,Y is measured on HGCAL surface)
+            if ( Z > 0 ) Z = 320.;  //in cm
+            else Z = -320.;   //in cm
                     
-                //std::cout << "    Storing values from the model output" << std::endl;
-                std::vector<float> candidate = {E, X, Y, Z };
-                candidates.push_back( candidate );
-            }
-            else {
-                if (values.size() == 2) {
-                    //std::cout << "    this is the line with shapes; ignore for now" << std::endl;
-                }
-                else {
-                    std::cout << "    Please check model output to retrieve desired regressed properties" << std::endl;
-                }
-            }
-
-        }
-        //std::cout << "Closing output array stream" << std::endl;
-        outputArrayStream.close();
+            //std::cout << "    Storing values from the model output" << std::endl;
+            std::vector<float> candidate = {E, X, Y, Z };
+            //std::cout << "  from output: (X,Y,Z,E) = " << "(" << X << "," << Y << "," << Z << "," << E << ")" << std::endl;
+            candidates.push_back( candidate );
+      }
+      else 
+        std::cout << "    Please check model output to retrieve desired regressed properties" << std::endl;
     }
 
-
+    std::cout << " candidates size = " << candidates.size() << std::endl;
 }
 
 

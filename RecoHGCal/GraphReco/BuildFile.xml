@@ -2,6 +2,7 @@
 <use name="DataFormats/TrackReco" />
 <use name="RecoLocalCalo/HGCalRecAlgos" />
 <use name="PhysicsTools/TensorFlow" />
+<use name="HeterogeneousCore/SonicCore"/>
 <use name="root"/>
 
 <use   name="Geometry/Records"/>
