@@ -4,6 +4,10 @@
 <use name="SimDataFormats/Track"/>
 <use name="SimDataFormats/CaloHit"/>
 <use name="clhepheader"/>
+<use name="SimDataFormats/CaloHit"/>
+<use name="RecoLocalCalo/HGCalRecAlgos"/>
+<use name="DataFormats/DetId"/>
+<use name="rootmath"/>
 <export>
   <lib name="1"/>
 </export>

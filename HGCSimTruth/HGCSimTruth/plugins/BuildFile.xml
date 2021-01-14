@@ -21,5 +21,7 @@
 <use name="RecoHGCal/GraphReco" />
 <use name="hepmc" />
 <use name="heppdt" />
-
-<flags EDM_PLUGIN="1" />
+<use name="SimDataFormats/CaloHit"/>
+<use name="Geometry/CaloGeometry"/>
+<use name="Geometry/Records"/>
+<flags EDM_PLUGIN="1"/>

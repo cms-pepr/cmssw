@@ -12,3 +12,7 @@
 #include "DataFormats/Common/interface/OneToManyWithQuality.h"
 #include "DataFormats/Common/interface/OneToManyWithQualityGeneric.h"
 #include "DataFormats/Common/interface/View.h"
+
+#include "SimDataFormats/CaloHit/interface/PCaloHit.h"
+#include "SimDataFormats/CaloAnalysis/interface/PCaloHitWithPosition.h"
+#include "DataFormats/Common/interface/Wrapper.h"

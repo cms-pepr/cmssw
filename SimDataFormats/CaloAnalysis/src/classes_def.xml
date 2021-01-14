@@ -33,4 +33,7 @@
   </class>
   <class name="edm::Wrapper<edm::AssociationMap<edm::OneToMany<std::vector<TrackingParticle>,std::vector<SimCluster>,unsigned int> >>"/>
   <class name="edm::helpers::KeyVal<edm::RefProd<vector<TrackingParticle> >,edm::RefProd<vector<SimCluster> > >"/>
+  <class name="PCaloHitWithPosition"/>
+  <class name="std::vector<PCaloHitWithPosition>"/>
+  <class name="edm::Wrapper<std::vector<PCaloHitWithPosition> >"/>
 </lcgdict>
