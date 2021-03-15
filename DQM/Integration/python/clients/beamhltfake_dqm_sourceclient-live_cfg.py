@@ -4,16 +4,25 @@ import FWCore.ParameterSet.Config as cms
 # Define here the BeamSpotOnline record name,
 # it will be used both in FakeBeamMonitor setup and in payload creation/upload
 BSOnlineRecordName = 'BeamSpotOnlineHLTObjectsRcd'
+BSOnlineTag = 'BeamSpotOnlineTestHLT'
+BSOnlineJobName = 'BeamSpotOnlineTestHLT'
 
 import sys
 from Configuration.Eras.Era_Run2_2018_cff import Run2_2018
 process = cms.Process("FakeBeamMonitor", Run2_2018)
 
+# Configure tag and jobName if running Playback system
+if "dqm_cmssw/playback" in str(sys.argv[1]):
+  BSOnlineTag = BSOnlineTag + 'Playback'
+  BSOnlineJobName = BSOnlineJobName + 'Playback'
 
-unitTest=False
+# switch
+live = True # FIXME
+unitTest = False
+
 if 'unitTest=True' in sys.argv:
+  live=False
   unitTest=True
-
 
 
 # Common part for PP and H.I Running
@@ -21,13 +30,15 @@ if 'unitTest=True' in sys.argv:
 if unitTest:
   process.load("DQM.Integration.config.unittestinputsource_cfi")
   from DQM.Integration.config.unittestinputsource_cfi import options
-else:
-  # for live online DQM in P5
+elif live:
   process.load("DQM.Integration.config.inputsource_cfi")
   from DQM.Integration.config.inputsource_cfi import options
+else:
+  process.load("DQM.Integration.config.fileinputsource_cfi")
+  from DQM.Integration.config.fileinputsource_cfi import options
 
-  # new stream label
-  process.source.streamLabel = cms.untracked.string('streamDQMOnlineBeamspot')
+# new stream label
+#process.source.streamLabel = cms.untracked.string('streamDQMOnlineBeamspot')
 
 # for testing in lxplus
 #process.load("DQM.Integration.config.fileinputsource_cfi")
@@ -47,7 +58,22 @@ process.hltTriggerTypeFilter = cms.EDFilter("HLTTriggerTypeFilter",
 process.load("DQM.Integration.config.environment_cfi")
 process.dqmEnv.subSystemFolder = 'FakeBeamMonitor'
 process.dqmSaver.tag           = 'FakeBeamMonitor'
+process.dqmSaver.runNumber     = options.runNumber
+process.dqmSaverPB.tag         = 'FakeBeamMonitor'
+process.dqmSaverPB.runNumber   = options.runNumber
 
+#---------------
+"""
+# Conditions
+if (live):
+  process.load("DQM.Integration.config.FrontierCondition_GT_cfi")
+else:
+  process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
+  from Configuration.AlCa.GlobalTag import GlobalTag as gtCustomise
+  process.GlobalTag = gtCustomise(process.GlobalTag, 'auto:run2_data', '')
+  # you may need to set manually the GT in the line below
+  #process.GlobalTag.globaltag = '100X_upgrade2018_realistic_v10'
+"""
 #-----------------------------
 # BeamMonitor
 #-----------------------------
@@ -58,9 +84,9 @@ process.dqmBeamMonitor = process.dqmFakeBeamMonitor.clone()
 # Calibration
 #---------------
 # Condition for P5 cluster
-process.load("DQM.Integration.config.FrontierCondition_GT_cfi")
+#process.load("DQM.Integration.config.FrontierCondition_GT_cfi")
 process.dqmcommon = cms.Sequence(process.dqmEnv
-                               * process.dqmSaver)
+                               * process.dqmSaver * process.dqmSaverPB)
 
 process.monitor = cms.Sequence(process.dqmBeamMonitor)
 
@@ -69,7 +95,13 @@ process.monitor = cms.Sequence(process.dqmBeamMonitor)
 from DQM.Integration.config.online_customizations_cfi import *
 process = customise(process)
 
-process.dqmBeamMonitor.monitorName = 'TrackingHLTBeamspotStream'
+# Set rawDataRepacker (HI and live) or rawDataCollector (for all the rest)
+if (process.runType.getRunType() == process.runType.hi_run and live):
+  rawDataInputTag = cms.InputTag("rawDataRepacker")
+else:
+  rawDataInputTag = cms.InputTag("rawDataCollector")
+
+process.dqmBeamMonitor.monitorName = 'FakeBeamMonitor'
 process.dqmBeamMonitor.OnlineMode = True              
 process.dqmBeamMonitor.recordName = BSOnlineRecordName
 
@@ -83,7 +115,7 @@ if unitTest == False:
 
       DBParameters = cms.PSet(
                               messageLevel = cms.untracked.int32(0),
-                              authenticationPath = cms.untracked.string('')
+                              authenticationPath = cms.untracked.string('.')
                               ),
 
       # Upload to CondDB
@@ -91,12 +123,16 @@ if unitTest == False:
       preLoadConnectionString = cms.untracked.string('frontier://FrontierProd/CMS_CONDITIONS'),
       runNumber = cms.untracked.uint64(options.runNumber),
       #lastLumiFile = cms.untracked.string('last_lumi.txt'),
-      lastLumiUrl = cms.untracked.string('http://ru-c2e14-11-01.cms:11100/urn:xdaq-application:lid=52/getLatestLumiSection'),
+      #lastLumiUrl = cms.untracked.string('http://ru-c2e14-11-01.cms:11100/urn:xdaq-application:lid=52/getLatestLumiSection'),
+      omsServiceUrl = cms.untracked.string('http://cmsoms-services.cms:9949/urn:xdaq-application:lid=100/getRunAndLumiSection'),
       writeTransactionDelay = cms.untracked.uint32(options.transDelay),
+      latency = cms.untracked.uint32(2),
       autoCommit = cms.untracked.bool(True),
+      saveLogsOnDB = cms.untracked.bool(True),
+      jobName = cms.untracked.string(BSOnlineJobName), # name of the DB log record
       toPut = cms.VPSet(cms.PSet(
           record = cms.string(BSOnlineRecordName),
-          tag = cms.string('BeamSpotOnlineTestHLT'),
+          tag = cms.string(BSOnlineTag),
           timetype = cms.untracked.string('Lumi'),
           onlyAppendUpdatePolicy = cms.untracked.bool(True)
       ))
@@ -106,7 +142,7 @@ else:
   process.OnlineDBOutputService = cms.Service("OnlineDBOutputService",
     DBParameters = cms.PSet(
                             messageLevel = cms.untracked.int32(0),
-                            authenticationPath = cms.untracked.string('')
+                            authenticationPath = cms.untracked.string('.')
                             ),
 
     # Upload to CondDB
@@ -117,10 +153,11 @@ else:
     lastLumiFile = cms.untracked.string('last_lumi.txt'),
     #lastLumiUrl = cms.untracked.string('http://ru-c2e14-11-01.cms:11100/urn:xdaq-application:lid=52/getLatestLumiSection'),
     writeTransactionDelay = cms.untracked.uint32(options.transDelay),
+    latency = cms.untracked.uint32(2),
     autoCommit = cms.untracked.bool(True),
     toPut = cms.VPSet(cms.PSet(
         record = cms.string(BSOnlineRecordName),
-        tag = cms.string('BeamSpotOnlineTestHLT'),
+        tag = cms.string(BSOnlineTag),
         timetype = cms.untracked.string('Lumi'),
         onlyAppendUpdatePolicy = cms.untracked.bool(True)
     ))

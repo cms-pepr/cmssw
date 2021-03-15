@@ -33,6 +33,7 @@
 #include "SimDataFormats/CaloAnalysis/interface/SimCluster.h"
 #include "SimDataFormats/CaloAnalysis/interface/SimClusterFwd.h"
 #include "SimDataFormats/CaloHit/interface/PCaloHit.h"
+#include "SimDataFormats/CaloHit/interface/PCaloHitContainer.h"
 #include "SimDataFormats/CaloTest/interface/HGCalTestNumbering.h"
 #include "SimDataFormats/GeneratorProducts/interface/HepMCProduct.h"
 #include "SimDataFormats/Vertex/interface/SimVertex.h"
@@ -47,6 +48,8 @@
 #include "Geometry/HcalCommonData/interface/HcalHitRelabeller.h"
 #include "Geometry/HcalTowerAlgo/interface/HcalGeometry.h"
 #include "Geometry/Records/interface/CaloGeometryRecord.h"
+#include "DataFormats/Common/interface/Association.h"
+#include "FWCore/Utilities/interface/transform.h"
 
 #include "RecoLocalCalo/HGCalRecAlgos/interface/RecHitTools.h"
 
@@ -102,6 +105,8 @@ struct ChainIndex {
   ChainIndex* next;
 };
 
+typedef std::pair<size_t, float> IdxAndFraction;
+
 class HGCTruthProducer : public edm::stream::EDProducer<> {
 public:
   static void fillDescriptions(edm::ConfigurationDescriptions&);
@@ -145,6 +150,8 @@ private:
   edm::EDGetTokenT<std::vector<SimCluster>> simClusterToken_;
   edm::EDGetTokenT<std::vector<SimClusterHistory>> simClusterHistoryToken_;
   std::vector<edm::EDGetTokenT<HGCRecHitCollection>> recHitTokens_;
+  //std::vector<edm::InputTag> simHitTags_
+  //std::vector<edm::EDGetTokenT<PCaloHitContainer>> simHitTokens_;
 
   hgcal::RecHitTools recHitTools_;
 };
@@ -166,6 +173,13 @@ void HGCTruthProducer::fillDescriptions(edm::ConfigurationDescriptions& descript
                                            edm::InputTag("HGCalRecHit", "HGCHEFRecHits"),
                                            edm::InputTag("HGCalRecHit", "HGCHEBRecHits"),
                                        });
+  //desc.add<std::vector<edm::InputTag>>("simHitCollections",
+  //                                     {
+  //                                         edm::InputTag("g4SimHits", "HGCHitsEE"),
+  //                                         edm::InputTag("g4SimHits", "HGCHitsHEfront"),
+  //                                         edm::InputTag("g4SimHits", "HGCHitsHEback"),
+  //                                     });
+
 
   descriptions.add("hgcTruthProducer", desc);
 }
@@ -181,20 +195,26 @@ HGCTruthProducer::HGCTruthProducer(const edm::ParameterSet& params)
           consumes<std::vector<CaloParticle>>(params.getParameter<edm::InputTag>("caloParticleCollection"))),
       simClusterToken_(consumes<std::vector<SimCluster>>(params.getParameter<edm::InputTag>("simClusterCollection"))),
       simClusterHistoryToken_(
-          consumes<std::vector<SimClusterHistory>>(params.getParameter<edm::InputTag>("simClusterHistoryCollection"))) {
+          consumes<std::vector<SimClusterHistory>>(params.getParameter<edm::InputTag>("simClusterHistoryCollection"))),
+      recHitTokens_(edm::vector_transform(params.getParameter<std::vector<edm::InputTag>>("recHitCollections"),
+          [this](const edm::InputTag& tag) {return consumes<HGCRecHitCollection>(tag); })) {
+      //simHitTags_(pset.getParameter<std::vector<edm::InputTag>>("simHitCollections")),
+      //simHitTokens_(edm::vector_transform(caloSimHitTags_,
+      //    [this](const edm::InputTag& tag) {return consumes<PCaloHitContainer>>(tag); })) {
   if (verbose_) {
     std::cout << "running TreeWriter in verbose mode" << std::endl;
-  }
-
-  // setup recHitTokens
-  for (auto& recHitCollection : params.getParameter<std::vector<edm::InputTag>>("recHitCollections")) {
-    recHitTokens_.push_back(consumes<HGCRecHitCollection>(recHitCollection));
   }
 
   // define products
   produces<std::vector<SimCluster>>();                // SimClusters
   produces<std::vector<float>>();                     // radii
   produces<std::vector<math::XYZTLorentzVectorD>>();  // rechit-base four-momenta of merged clusters
+
+  //for (auto& tag : simHitTags_) {
+  //  std::string label = tag.instance();
+  //  produces<edm::Association<SimClusterCollection>>(label+"ToSimClus");
+  //}
+  produces<edm::Association<SimClusterCollection>>();
 }
 
 HGCTruthProducer::~HGCTruthProducer() {}
@@ -205,6 +225,9 @@ void HGCTruthProducer::endStream() {}
 
 void HGCTruthProducer::produce(edm::Event& event, const edm::EventSetup& setup) {
   std::cout << "HGCTruthProducer::produce" << std::endl;
+  edm::ESHandle<CaloGeometry> geom;
+  setup.get<CaloGeometryRecord>().get(geom);
+  recHitTools_.setGeometry(*geom);
 
   // create unique pointers for output products
   std::unique_ptr<std::vector<SimCluster>> mergedSimClusters = std::make_unique<std::vector<SimCluster>>();
@@ -237,6 +260,13 @@ void HGCTruthProducer::produce(edm::Event& event, const edm::EventSetup& setup) 
   std::vector<std::vector<int>> groups;
   determineSimClusterGroups(simClusters, simClusterHistory, groups, radii, vectors);
 
+  std::vector<size_t> mergedIndices(simClusters.size(), 0);
+  for (size_t i = 0; i < groups.size(); i++) {
+      for (auto idx : groups.at(i)) {
+          mergedIndices.at(idx) = i;
+      }
+  }
+
   // do the actual merging
   mergeSimClusters(simClusters, simClusterHistory, groups, mergedSimClusters, allrechits, detid_to_rh_index);
 
@@ -244,9 +274,27 @@ void HGCTruthProducer::produce(edm::Event& event, const edm::EventSetup& setup) 
             << std::endl;  //DEBUG Jan
 
   // save outputs
-  event.put(std::move(mergedSimClusters));
+  const auto& mergedSCHandle = event.put(std::move(mergedSimClusters));
   event.put(std::move(radii));
   event.put(std::move(vectors));
+
+  auto assoc = std::make_unique<edm::Association<SimClusterCollection>>(mergedSCHandle);
+  edm::Association<SimClusterCollection>::Filler filler(*assoc);
+  filler.insert(simClusterHandle, mergedIndices.begin(), mergedIndices.end());
+  filler.fill();
+  event.put(std::move(assoc));
+  //std::unordered_map<size_t, IdxAndFraction> hitDetIdToIndex;
+  //for (size_t s = 0; s < mergedSimClusters->size(); s++) {
+  //  const auto& sc = mergedSimClusters->at(s);
+  //  for (auto& hf : sc.hits_and_fractions()) {
+  //      auto entry = hitDetIdToIndex.find(hf.first);
+  //      // Update SimCluster assigment if detId has been found in no other SCs or if
+  //      // SC has greater fraction of energy in DetId than the SC already found
+  //      if (entry == hitDetIdToIndex.end() || entry->second.second < hf.second)
+  //          hitDetIdToIndex[hf.first] = {s, hf.second};
+  //  }
+  //}
+
 }
 
 void HGCTruthProducer::determineSimClusterGroups(const SimClusterCollection& simClusters,

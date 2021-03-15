@@ -75,7 +75,6 @@ else:
 # Messages
 ###################################################################
 process.load("FWCore.MessageService.MessageLogger_cfi")
-process.MessageLogger.destinations = ['cout', 'cerr']
 process.MessageLogger.cerr.FwkReport.reportEvery = 1000
 
 ####################################################################
@@ -296,6 +295,7 @@ def switchClusterizerParameters(da):
 # Configure the PVValidation Analyzer module
 ####################################################################
 process.PVValidation = cms.EDAnalyzer("PrimaryVertexValidation",
+                                      numberOfBins = cms.untracked.int32(48),
                                       TrackCollectionTag = cms.InputTag("FinalTrackRefitter"),
                                       VertexCollectionTag = cms.InputTag("VERTEXTYPETEMPLATE"),
                                       Debug = cms.bool(False),

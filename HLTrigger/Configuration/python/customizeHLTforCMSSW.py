@@ -202,15 +202,6 @@ def customiseFor2018Input(process):
     process = customisePixelGainForRun2Input(process)
     process = synchronizeHCALHLTofflineRun3on2018data(process)
 
-
-def customizeToDropObsoleteMessageLoggerOptions(process):
-    if 'MessageLogger' in process.__dict__:
-        if not hasattr(process.MessageLogger, "fwkJobReports"):
-            return process
-        for config in process.MessageLogger.fwkJobReports.value():
-            if hasattr(process.MessageLogger, config):
-                delattr(process.MessageLogger, config)
-        delattr(process.MessageLogger, "fwkJobReports")
     return process
 
 
@@ -219,8 +210,5 @@ def customizeHLTforCMSSW(process, menuType="GRun"):
 
     # add call to action function in proper order: newest last!
     # process = customiseFor12718(process)
-
-    #introduced in pull request #31859
-    process = customizeToDropObsoleteMessageLoggerOptions(process)
 
     return process

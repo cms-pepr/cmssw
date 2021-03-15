@@ -6,7 +6,9 @@ from PhysicsTools.NanoAOD.genparticles_cff import *
 from PhysicsTools.NanoAOD.particlelevel_cff import *
 from PhysicsTools.NanoAOD.lheInfoTable_cfi import *
 from PhysicsTools.NanoAOD.genWeightsTable_cfi import *
+from PhysicsTools.NanoAOD.genVertex_cff import *
 from PhysicsTools.NanoAOD.common_cff import Var,CandVars
+from PhysicsTools.NanoAOD.nano_eras_cff import *
 
 nanoMetadata = cms.EDProducer("UniqueStringProducer",
     strings = cms.PSet(
@@ -30,6 +32,7 @@ nanogenSequence = cms.Sequence(
     genVisTauTable+
     genTable+
     genParticleTables+
+    genVertexTables+
     tautagger+
     rivetProducerHTXS+
     particleLevelTables+
@@ -57,9 +60,13 @@ def nanoGenCommonCustomize(process):
     setGenPhiPrecision(process, CandVars.phi.precision)
 
 def customizeNanoGENFromMini(process):
-    process.nanoAOD_step.insert(0, process.genParticles2HepMCHiggsVtx)
-    process.nanoAOD_step.insert(0, process.genParticles2HepMC)
-    process.nanoAOD_step.insert(0, process.mergedGenParticles)
+    process.nanogenSequence.insert(0, process.genParticles2HepMCHiggsVtx)
+    process.nanogenSequence.insert(0, process.genParticles2HepMC)
+    process.nanogenSequence.insert(0, process.mergedGenParticles)
+
+    (run2_nanoAOD_92X | run2_miniAOD_80XLegacy | run2_nanoAOD_94X2016 | run2_nanoAOD_94X2016 | \
+        run2_nanoAOD_94XMiniAODv1 | run2_nanoAOD_94XMiniAODv2 | \
+        run2_nanoAOD_102Xv1).toReplaceWith(nanogenSequence, nanogenSequence.copyAndExclude([genVertexTable, genVertexT0Table]))
 
     process.metMCTable.src = "slimmedMETs"
     process.metMCTable.variables.pt = Var("genMET.pt", float, doc="pt")
@@ -75,6 +82,7 @@ def customizeNanoGENFromMini(process):
     process.genJetAK8Table.src = "slimmedGenJetsAK8"
     process.tauGenJets.GenParticles = "prunedGenParticles"
     process.genVisTaus.srcGenParticles = "prunedGenParticles"
+
     nanoGenCommonCustomize(process)
 
     return process
@@ -94,30 +102,30 @@ def customizeNanoGEN(process):
     process.genVisTaus.srcGenParticles = "genParticles"
 
     # In case customizeNanoGENFromMini has already been called
-    process.nanoAOD_step.remove(process.genParticles2HepMCHiggsVtx)
-    process.nanoAOD_step.remove(process.genParticles2HepMC)
-    process.nanoAOD_step.remove(process.mergedGenParticles)
+    process.nanogenSequence.remove(process.genParticles2HepMCHiggsVtx)
+    process.nanogenSequence.remove(process.genParticles2HepMC)
+    process.nanogenSequence.remove(process.mergedGenParticles)
     nanoGenCommonCustomize(process)
     return process
 
 # Prune gen particles with tight conditions applied in usual NanoAOD
 def pruneGenParticlesNano(process):
-    process.finalGenParticles = finalGenParticles.clone()
-    process.genParticleTable.src = "prunedGenParticles"
-    process.patJetPartons.particles = "prunedGenParticles"
-    process.nanoAOD_step.insert(0, process.finalGenParticles)
+    process.finalGenParticles.src = process.genParticleTable.src.getModuleLabel()
+    process.genParticleTable.src = "finalGenParticles"
+    process.nanogenSequence.insert(0, process.finalGenParticles)
     return process
 
 # Prune gen particles with conditions applied in usual MiniAOD
 def pruneGenParticlesMini(process):
-    from PhysicsTools.PatAlgos.slimming.prunedGenParticles_cfi import prunedGenParticles
-    process.prunedGenParticles = prunedGenParticles.clone()
-    if process.nanoAOD_step.contains(process.nanogenMiniSequence):
+    if process.nanogenSequence.contains(process.mergedGenParticles):
         raise ValueError("Applying the MiniAOD genParticle pruner to MiniAOD is redunant. " \
             "Use a different customization.")
+    from PhysicsTools.PatAlgos.slimming.prunedGenParticles_cfi import prunedGenParticles
+    process.prunedGenParticles = prunedGenParticles.clone()
+    process.prunedGenParticles.src = "genParticles"
     process.genParticleTable.src = "prunedGenParticles"
-    process.patJetPartons.particles = "prunedGenParticles"
-    process.nanoAOD_step.insert(0, process.prunedGenParticles)
+
+    process.nanogenSequence.insert(0, process.prunedGenParticles)
     return process
 
 def setGenFullPrecision(process):

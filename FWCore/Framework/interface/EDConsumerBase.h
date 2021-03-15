@@ -51,6 +51,7 @@
 
 namespace edm {
   class ModuleDescription;
+  class ModuleProcessName;
   class ProductResolverIndexHelper;
   class ProductRegistry;
   class ConsumesCollector;
@@ -69,7 +70,7 @@ namespace edm {
 
   class EDConsumerBase {
   public:
-    EDConsumerBase() : m_tokenLabels{'\0'}, frozen_(false), containsCurrentProcessAlias_(false) {}
+    EDConsumerBase();
     virtual ~EDConsumerBase() noexcept(false);
 
     // disallow copying
@@ -105,7 +106,8 @@ namespace edm {
     typedef ProductLabels Labels;
     void labelsForToken(EDGetToken iToken, Labels& oLabels) const;
 
-    void modulesWhoseProductsAreConsumed(std::vector<ModuleDescription const*>& modules,
+    void modulesWhoseProductsAreConsumed(std::array<std::vector<ModuleDescription const*>*, NumBranchTypes>& modulesAll,
+                                         std::vector<ModuleProcessName>& modulesInPreviousProcesses,
                                          ProductRegistry const& preg,
                                          std::map<std::string, ModuleDescription const*> const& labelsToDesc,
                                          std::string const& processName) const;
@@ -245,6 +247,9 @@ namespace edm {
     void throwBranchMismatch(BranchType, EDGetToken) const;
     void throwBadToken(edm::TypeID const& iType, EDGetToken iToken) const;
     void throwConsumesCallAfterFrozen(TypeToGet const&, InputTag const&) const;
+    void throwESConsumesCallAfterFrozen(eventsetup::EventSetupRecordKey const&,
+                                        eventsetup::heterocontainer::HCTypeTag const&,
+                                        edm::ESInputTag const&) const;
     void throwESConsumesInProcessBlock() const;
 
     edm::InputTag const& checkIfEmpty(edm::InputTag const& tag);

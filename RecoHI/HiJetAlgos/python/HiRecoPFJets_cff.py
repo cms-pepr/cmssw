@@ -89,7 +89,7 @@ akCs4PFJets = cms.EDProducer(
     csRParam  = cms.double(-1.),
     csAlpha   = cms.double(2.),
     writeJetsWithConst = cms.bool(True),
-    useModulatedRho = cms.bool(True),
+    useModulatedRho = cms.bool(False),
     rhoFlowFitParams = cms.InputTag('hiFJRhoFlowModulation', 'rhoFlowFitParams'),
     jetCollInstanceName = cms.string("pfParticlesCs"),
 )
@@ -119,3 +119,4 @@ hiRecoPFJets = cms.Sequence(hiRecoPFJetsTask)
 
 from Configuration.ProcessModifiers.run2_miniAOD_pp_on_AA_103X_cff import run2_miniAOD_pp_on_AA_103X
 run2_miniAOD_pp_on_AA_103X.toModify(akCs4PFJets,src = 'cleanedParticleFlow')
+run2_miniAOD_pp_on_AA_103X.toModify(PFTowers,src = 'cleanedParticleFlow')

@@ -51,8 +51,7 @@ edm::FlatEtaRangeGunProducer::FlatEtaRangeGunProducer(const edm::ParameterSet& p
       etaMax_(params.getParameter<double>("etaMax")),
       phiMin_(params.getParameter<double>("phiMin")),
       phiMax_(params.getParameter<double>("phiMax")),
-      debug_(params.getUntrackedParameter<bool>("debug")),
-      genEvent_(nullptr) {
+      debug_(params.getUntrackedParameter<bool>("debug")) {
   produces<edm::HepMCProduct>("unsmeared");
   produces<GenEventInfoProduct>();
   produces<GenRunInfoProduct, edm::Transition::EndRun>();
@@ -75,8 +74,7 @@ void edm::FlatEtaRangeGunProducer::produce(edm::Event& event, const edm::EventSe
   }
 
   // create a new event to fill
-  genEvent_ = new HepMC::GenEvent();
-
+  auto* genEvent = new HepMC::GenEvent();
 
   // determine the number of particles to shoot
   int n = 0;
@@ -96,7 +94,7 @@ void edm::FlatEtaRangeGunProducer::produce(edm::Event& event, const edm::EventSe
         // obtain kinematics
         int id = particleIDs_[exactShoot_ ? particle_counter : CLHEP::RandFlat::shoot(engine, 0, particleIDs_.size())];
         particle_counter++;
-        if(particle_counter>n)
+        if(particle_counter>=n)
             particle_counter=0;
 
         const HepPDT::ParticleData* pData = pdgTable_->particle(HepPDT::ParticleID(abs(id)));
@@ -119,7 +117,7 @@ void edm::FlatEtaRangeGunProducer::produce(edm::Event& event, const edm::EventSe
 
         // add the particle to the vertex and the vertex to the event
         vtx->add_particle_out(particle);
-        genEvent_->add_vertex(vtx);
+        genEvent->add_vertex(vtx);
 
         if (debug_) {
             vtx->print();
@@ -128,18 +126,18 @@ void edm::FlatEtaRangeGunProducer::produce(edm::Event& event, const edm::EventSe
     }
 
   // fill event attributes
-  genEvent_->set_event_number(event.id().event());
-  genEvent_->set_signal_process_id(20);
+  genEvent->set_event_number(event.id().event());
+  genEvent->set_signal_process_id(20);
 
   if (debug_) {
-    genEvent_->print();
+    genEvent->print();
   }
 
   // store outputs
   std::unique_ptr<HepMCProduct> BProduct(new HepMCProduct());
-  BProduct->addHepMCData(genEvent_);
+  BProduct->addHepMCData(genEvent);
   event.put(std::move(BProduct), "unsmeared");
-  std::unique_ptr<GenEventInfoProduct> genEventInfo(new GenEventInfoProduct(genEvent_));
+  auto genEventInfo = std::make_unique<GenEventInfoProduct>(genEvent);
   event.put(std::move(genEventInfo));
 
   if (debug_) {

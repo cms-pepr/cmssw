@@ -57,7 +57,6 @@ namespace edm {
     bool debug_;
 
     // pointer to the current event
-    HepMC::GenEvent* genEvent_;
 
     // pdg table
     ESHandle<HepPDT::ParticleDataTable> pdgTable_;

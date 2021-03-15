@@ -5,10 +5,17 @@ import time
 # Define here the BeamSpotOnline record name,
 # it will be used both in FakeBeamMonitor setup and in payload creation/upload
 BSOnlineRecordName = 'BeamSpotOnlineLegacyObjectsRcd'
+BSOnlineTag = 'BeamSpotOnlineTestLegacy'
+BSOnlineJobName = 'BeamSpotOnlineTestLegacy'
 
 import sys
 from Configuration.Eras.Era_Run2_2018_cff import Run2_2018
 process = cms.Process("FakeBeamMonitor", Run2_2018)
+
+# Configure tag and jobName if running Playback system
+if "dqm_cmssw/playback" in str(sys.argv[1]):
+    BSOnlineTag = BSOnlineTag + 'Playback'
+    BSOnlineJobName = BSOnlineJobName + 'Playback'
 
 #
 process.MessageLogger = cms.Service("MessageLogger",
@@ -52,9 +59,13 @@ process.hltTriggerTypeFilter = cms.EDFilter("HLTTriggerTypeFilter",
 process.load("DQM.Integration.config.environment_cfi")
 process.dqmEnv.subSystemFolder = 'FakeBeamMonitor'
 process.dqmSaver.tag           = 'FakeBeamMonitor'
+process.dqmSaver.runNumber     = options.runNumber
+process.dqmSaverPB.tag         = 'FakeBeamMonitor'
+process.dqmSaverPB.runNumber   = options.runNumber
 
 
 #---------------
+"""
 # Conditions
 if (live):
     process.load("DQM.Integration.config.FrontierCondition_GT_cfi")
@@ -63,8 +74,8 @@ else:
     from Configuration.AlCa.GlobalTag import GlobalTag as gtCustomise
     process.GlobalTag = gtCustomise(process.GlobalTag, 'auto:run2_data', '')
     # you may need to set manually the GT in the line below
-    process.GlobalTag.globaltag = '100X_upgrade2018_realistic_v10'
-
+    #process.GlobalTag.globaltag = '100X_upgrade2018_realistic_v10'
+"""
 #----------------------------
 # BeamMonitor
 process.load("DQM.BeamMonitor.FakeBeamMonitor_cff")
@@ -72,7 +83,7 @@ process.load("DQM.BeamMonitor.FakeBeamMonitor_cff")
 
 #----------------
 # Setup tracking
-process.load("Configuration.StandardSequences.GeometryRecoDB_cff")
+#process.load("Configuration.StandardSequences.GeometryRecoDB_cff")
 #process.load('Configuration.StandardSequences.MagneticField_AutoFromDBCurrent_cff')
 #process.load("Configuration.StandardSequences.RawToDigi_Data_cff")
 #process.load("RecoLocalTracker.Configuration.RecoLocalTracker_cff")
@@ -81,7 +92,7 @@ process.load("Configuration.StandardSequences.GeometryRecoDB_cff")
 #-----------------
 
 process.dqmcommon = cms.Sequence(process.dqmEnv
-                               * process.dqmSaver)
+                               * process.dqmSaver * process.dqmSaverPB)
 
 #
 process.monitor = cms.Sequence(process.dqmFakeBeamMonitor
@@ -138,13 +149,16 @@ if unitTest == False:
 
         runNumber = cms.untracked.uint64(options.runNumber),
         #lastLumiFile = cms.untracked.string('last_lumi.txt'),
-        lastLumiUrl = cms.untracked.string('http://ru-c2e14-11-01.cms:11100/urn:xdaq-application:lid=52/getLatestLumiSection'),
+        #lastLumiUrl = cms.untracked.string('http://ru-c2e14-11-01.cms:11100/urn:xdaq-application:lid=52/getLatestLumiSection'),
+        omsServiceUrl = cms.untracked.string('http://cmsoms-services.cms:9949/urn:xdaq-application:lid=100/getRunAndLumiSection'),
         writeTransactionDelay = cms.untracked.uint32(options.transDelay),
         latency = cms.untracked.uint32(2),
         autoCommit = cms.untracked.bool(True),
+        saveLogsOnDB = cms.untracked.bool(True),
+        jobName = cms.untracked.string(BSOnlineJobName), # name of the DB log record
         toPut = cms.VPSet(cms.PSet(
             record = cms.string(BSOnlineRecordName),
-            tag = cms.string('BeamSpotOnlineTestLegacy'),
+            tag = cms.string(BSOnlineTag),
             timetype = cms.untracked.string('Lumi'),
             onlyAppendUpdatePolicy = cms.untracked.bool(True)
         ))
@@ -168,7 +182,7 @@ else:
         autoCommit = cms.untracked.bool(True),
         toPut = cms.VPSet(cms.PSet(
             record = cms.string(BSOnlineRecordName),
-            tag = cms.string('BeamSpotOnlineTestLegacy'),
+            tag = cms.string(BSOnlineTag),
             timetype = cms.untracked.string('Lumi'),
             onlyAppendUpdatePolicy = cms.untracked.bool(True)
         ))
