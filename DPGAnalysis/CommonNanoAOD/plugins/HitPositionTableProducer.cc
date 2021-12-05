@@ -76,6 +76,43 @@ public:
     return position;
   }
 
+  float radiusFromHit(const PCaloHit& hit) {
+      DetId id = hit.id();
+      return radiusFromDetId(id);
+  }
+
+  float radiusFromHit(const CaloRecHit& hit) {
+      return radiusFromDetId(hit.detid());
+  }
+
+  // Should really only be used for HGCAL, cartesian
+  float radiusFromDetId(DetId id) {
+      DetId::Detector det = id.det();
+      if (det == DetId::Hcal || det == DetId::HGCalEE || det == DetId::HGCalHSi || det == DetId::HGCalHSc) {
+         if(rhtools_.isSilicon(id)){
+             return rhtools_.getRadiusToSide(id);
+         }
+         else if(rhtools_.isScintillator(id)){
+             auto detadphi = rhtools_.getScintDEtaDPhi(id);
+             float dphi = detadphi.second;//same in both
+             auto pos = rhtools_.getPosition(id);
+             float r = pos.transverse();
+             return r * sin(dphi)/2.;//this is anyway approximate
+         }
+         else{
+             return 0.;
+         }
+
+      } else {
+        return 0; //no except here
+      }
+  }
+
+  float radiusFromHit(const PSimHit& hit) {
+      auto detId = DetId(hit.detUnitId());
+        return radiusFromDetId(detId);
+    }
+
   void produce(edm::Event& iEvent, const edm::EventSetup& iSetup) override {
     edm::Handle<T> objs;
     iEvent.getByToken(src_, objs);
@@ -83,12 +120,14 @@ public:
     std::vector<float> xvals;
     std::vector<float> yvals;
     std::vector<float> zvals;
+    std::vector<float> hitrvals;
     for (const auto& obj : *objs) {
       if (cut_(obj)) {
         auto position = positionFromHit(obj);
         xvals.emplace_back(position.x());
         yvals.emplace_back(position.y());
         zvals.emplace_back(position.z());
+        hitrvals.emplace_back(radiusFromHit(obj));
       }
     }
 
@@ -96,6 +135,7 @@ public:
     tab->addColumn<float>("x", xvals, "x position");
     tab->addColumn<float>("y", yvals, "y position");
     tab->addColumn<float>("z", zvals, "z position");
+    tab->addColumn<float>("hitr", hitrvals, "radius");
 
     iEvent.put(std::move(tab));
   }

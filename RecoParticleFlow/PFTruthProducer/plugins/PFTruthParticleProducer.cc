@@ -221,7 +221,7 @@ void PFTruthParticleProducer::produce(edm::StreamID, edm::Event &iEvent, const e
               matchedtptocp.push_back(i);
               tprefs.push_back(tpref);
 
-              std::cout << "added track " << tpref->pdgId() << " "<< tpref->momentum() << ", pt " << tpref->pt()<< std::endl;//DEBUG
+              //std::cout << "added track " << tpref->pdgId() << " "<< tpref->momentum() << ", pt " << tpref->pt()<< std::endl;//DEBUG
           }
 
           for(const auto g4t: tpref->g4Tracks()){
@@ -233,7 +233,7 @@ void PFTruthParticleProducer::produce(edm::StreamID, edm::Event &iEvent, const e
 
       }
 
-      std::cout << "PF particle with "<< tprefs.size() << " attached tracking particles " <<std::endl;//DEBUG
+      //std::cout << "PF particle with "<< tprefs.size() << " attached tracking particles " <<std::endl;//DEBUG
       PFTruthParticle pftp(tprefs,screfs);
       pftp.setP4(cp.p4());
       pftp.setPdgId(cp.pdgId());
@@ -250,7 +250,7 @@ void PFTruthParticleProducer::produce(edm::StreamID, edm::Event &iEvent, const e
       idealPFTruth.push_back(pftp);
   }
 
-  std::cout << "ideal PF truth built, splitting" << std::endl;//DEBUG
+  //std::cout << "ideal PF truth built, splitting" << std::endl;//DEBUG
 
 
   // --- now we have the ideal PF truth, far from realistic.
@@ -287,7 +287,7 @@ void PFTruthParticleProducer::produce(edm::StreamID, edm::Event &iEvent, const e
               scToPFpartIdx[sc.key()] = PFtruth->size();
               PFtruth->push_back(npftp);
           }
-          std::cout << "Split PF Particle to "<< PFtruth->size()-pre << " neutrals " <<std::endl;//DEBUG
+          //std::cout << "Split PF Particle to "<< PFtruth->size()-pre << " neutrals " <<std::endl;//DEBUG
       }
       else {
         //remaining: the ones that have tracking particles associated
@@ -321,12 +321,8 @@ void PFTruthParticleProducer::produce(edm::StreamID, edm::Event &iEvent, const e
       int scIdx = scRef.isNonnull() ? scRef.key() : -1;
       int pfIdx = scIdx >= 0 ? scToPFpartIdx[scIdx] : -1;
       if (scIdx >= 0)
-      std::cout << "SC Index is " << scIdx << " pfIdx is " << pfIdx << std::endl;
       rhToPFpartIdx.at(i) = pfIdx;
   }
-
-
-  std::cout << "putting PFTruthParticles" << std::endl;//DEBUG
 
   auto pfTruthHand = iEvent.put(std::move(PFtruth));
 

@@ -51,4 +51,9 @@ trackDisplacedTable = cms.EDProducer("SimpleTrackFlatTableProducer",
     )
 )
 
-trackTables = cms.Sequence(generalTrackTable+generalTrackHGCPositionTable+trackConversionsTable+trackDisplacedTable)
+trackSimClusterMatch = cms.EDProducer("RecoTrackToSimClusterAssociation",
+    tracks = cms.InputTag("generalTracks"),
+    simclusters = cms.InputTag("hgcSimTruth"),
+    )
+
+trackTables = cms.Sequence(generalTrackTable+generalTrackHGCPositionTable+trackConversionsTable+trackDisplacedTable+trackSimClusterMatch)

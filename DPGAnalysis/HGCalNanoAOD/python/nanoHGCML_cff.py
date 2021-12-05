@@ -26,7 +26,7 @@ genParticleTable.src = "genParticles"
 genParticleTable.variables = cms.PSet(genParticleTable.variables,
     charge = CandVars.charge)
 
-nanoHGCMLSequence = cms.Sequence(nanoMetadata+genVertexTables+genParticleTable+
+nanoHGCMLSequence = cms.Sequence(nanoMetadata+genVertexTable+genVertexT0Table+genParticleTable+
         trackingParticleTable+caloParticleTable+
         layerClusterTables+
         simTrackTables+hgcSimHitsSequence+trackerSimHitTables+
