@@ -2,9 +2,12 @@
 <use name="FWCore/PluginManager" />
 <use name="FWCore/ParameterSet" />
 <use name="FWCore/MessageLogger" />
+<use name="DataFormats/Common" />
 <use name="DataFormats/TrackReco" />
-<use name="RecoLocalCalo/HGCalRecAlgos" />
+<use name="DataFormats/ParticleFlowCandidate" />
+<use name="DataFormats/HGCalReco" />
 <use name="PhysicsTools/TensorFlow" />
+<use name="RecoLocalCalo/HGCalRecAlgos" />
 <use name="SimDataFormats/CaloAnalysis" />
 <use name="DataFormats/Candidate"/>
 <use name="DataFormats/ParticleFlowCandidate"/>

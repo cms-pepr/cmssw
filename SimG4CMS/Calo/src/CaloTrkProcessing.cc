@@ -20,7 +20,7 @@
 
 #include "G4SystemOfUnits.hh"
 
-//#define EDM_ML_DEBUG
+// #define EDM_ML_DEBUG
 
 CaloTrkProcessing::CaloTrkProcessing(const std::string& name,
                                      const edm::EventSetup& es,
@@ -34,7 +34,7 @@ CaloTrkProcessing::CaloTrkProcessing(const std::string& name,
   eMin_ = m_p.getParameter<double>("EminTrack") * CLHEP::MeV;
   putHistory_ = m_p.getParameter<bool>("PutHistory");
   doFineCalo_ = m_p.getParameter<bool>("DoFineCalo");
-  storeHGCBoundaryCross_ = m_p.getParameter<bool>("StoreHGCBoundaryCross");
+  storeAllTracksCalo_ = m_p.getParameter<bool>("StoreAllTracksCalo");
   eMinFine_ = m_p.getParameter<double>("EminFineTrack") * CLHEP::MeV;
   eMinFinePhoton_ = m_p.getParameter<double>("EminFinePhoton") * CLHEP::MeV;
 
@@ -187,6 +187,68 @@ void CaloTrkProcessing::update(const G4Step* aStep) {
     throw cms::Exception("Unknown", "CaloTrkProcessing") << "cannot get trkInfo for Track " << id << "\n";
   }
 
+  if (doFineCalo_ || storeAllTracksCalo_) {
+    // Boundary-crossing logic
+    // const G4VTouchable* touch = aStep->GetPreStepPoint()->GetTouchable();
+    int prestepLV = isItCalo(aStep->GetPreStepPoint()->GetTouchable(), fineDetectors_);
+    int poststepLV = isItCalo(aStep->GetPostStepPoint()->GetTouchable(), fineDetectors_);
+    if (
+      prestepLV < 0 && poststepLV >= 0
+      // Require abs(pre z position) < abs(current z position) to prevent back scattering tracks from being counted
+      && std::abs(theTrack->GetStep()->GetPreStepPoint()->GetPosition().z()) < std::abs(theTrack->GetPosition().z())
+      ) {
+      edm::LogInfo("DoFineCalo")
+        << "Crossed boundary:"
+        << " Track " << id
+        << " prestepLV=" << prestepLV
+        << " poststepLV=" << poststepLV
+        << " GetKineticEnergy=" << theTrack->GetKineticEnergy()
+        << " GetVertexKineticEnergy=" << theTrack->GetVertexKineticEnergy()
+        << " prestepPosition=("
+          << theTrack->GetStep()->GetPreStepPoint()->GetPosition().x() << ","
+          << theTrack->GetStep()->GetPreStepPoint()->GetPosition().y() << ","
+          << theTrack->GetStep()->GetPreStepPoint()->GetPosition().z() << ")"
+        << " poststepPosition=("
+          << theTrack->GetStep()->GetPostStepPoint()->GetPosition().x() << ","
+          << theTrack->GetStep()->GetPostStepPoint()->GetPosition().y() << ","
+          << theTrack->GetStep()->GetPostStepPoint()->GetPosition().z() << ")"
+        << " position=("
+          << theTrack->GetPosition().x() << ","
+          << theTrack->GetPosition().y() << ","
+          << theTrack->GetPosition().z() << ")"
+        << " vertex_position=("
+          << theTrack->GetVertexPosition().x() << ","
+          << theTrack->GetVertexPosition().y() << ","
+          << theTrack->GetVertexPosition().z() << ")"
+        ;
+      trkInfo->setCrossedBoundary(theTrack);
+      }
+    // Decide whether to store in history
+    if (!trkInfo->isInHistory()){
+      // For fine calo, put every single track in history
+      trkInfo->putInHistory();
+      if (storeAllTracksCalo_) trkInfo->storeTrack(true);
+#ifdef EDM_ML_DEBUG
+      edm::LogInfo("DoFineCalo")
+        << "Putting in history:"
+        << " Track " << id
+        << " vertex=("
+          << theTrack->GetVertexPosition().x() << ","
+          << theTrack->GetVertexPosition().y() << ","
+          << theTrack->GetVertexPosition().z() << ")"
+        << " position=("
+          << theTrack->GetPosition().x() << ","
+          << theTrack->GetPosition().y() << ","
+          << theTrack->GetPosition().z() << ")"
+        << " energy=" << theTrack->GetKineticEnergy()
+        << " getIDfineCalo=" << trkInfo->getIDfineCalo()
+        << " getIDonCaloSurface=" << trkInfo->getIDonCaloSurface()
+        << " parentID=" << theTrack->GetParentID()
+        ;
+#endif
+      }
+    }
+
   if (testBeam_) {
     if (trkInfo->getIDonCaloSurface() == 0) {
 #ifdef EDM_ML_DEBUG
@@ -243,19 +305,12 @@ void CaloTrkProcessing::update(const G4Step* aStep) {
       }
     }
   }
-  if ((doFineCalo_ || storeHGCBoundaryCross_) && (!trkInfo->isInHistory())) {
+  if (doFineCalo_ && (!trkInfo->isInHistory())) {
     const G4VTouchable* pre_touch = aStep->GetPreStepPoint()->GetTouchable();
-
-    bool crossedHGCBoundary = false;
-    if (storeHGCBoundaryCross_) { 
-        const G4VTouchable* post_touch = aStep->GetPostStepPoint()->GetTouchable();
-        crossedHGCBoundary = isItCalo(pre_touch, fineDetectors_) < 0 && isItCalo(post_touch, fineDetectors_) >= 0;
-    }
-
-    if (isItCalo(pre_touch, fineDetectors_) >= 0 || crossedHGCBoundary) {
+    if (isItCalo(pre_touch, fineDetectors_) >= 0) {
       int pdg = aStep->GetTrack()->GetDefinition()->GetPDGEncoding();
       double cut = (pdg == 22) ? eMinFinePhoton_ : eMinFine_;
-      if (crossedHGCBoundary || aStep->GetTrack()->GetKineticEnergy() / CLHEP::MeV > cut) {
+      if (aStep->GetTrack()->GetKineticEnergy() / CLHEP::MeV > cut) {
         trkInfo->putInHistory();
         trkInfo->setIDfineCalo(id);
       }

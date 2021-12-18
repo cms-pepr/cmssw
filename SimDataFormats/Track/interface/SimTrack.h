@@ -2,6 +2,9 @@
 #define SimTrack_H
 
 #include "SimDataFormats/Track/interface/CoreSimTrack.h"
+#include "DataFormats/Math/interface/Vector3D.h"
+#include "DataFormats/Math/interface/LorentzVector.h"
+#include "FWCore/Utilities/interface/Exception.h"
 
 class SimTrack : public CoreSimTrack {
 public:
@@ -44,12 +47,44 @@ public:
 
   inline void setVertexIndex(const int v) { ivert = v; }
 
+  // Boundary crossing variables
+  void setCrossedBoundaryPosMom(int id, const math::XYZVectorD position, const math::XYZTLorentzVectorD momentum){
+    crossedBoundary_ = true;
+    idAtBoundary_ = id;
+    positionAtBoundary_ = position;
+    momentumAtBoundary_ = momentum;
+    }
+  bool crossedBoundary() const { return crossedBoundary_; }
+  math::XYZVectorD getPositionAtBoundary() const {
+    assertCrossedBoundary();
+    return positionAtBoundary_;
+    }
+  math::XYZTLorentzVectorD getMomentumAtBoundary() const {
+    assertCrossedBoundary();
+    return momentumAtBoundary_;
+    }
+  int getIDAtBoundary() const {
+    assertCrossedBoundary();
+    return idAtBoundary_;
+    }
+
 private:
   int ivert;
   int igenpart;
 
   math::XYZVectorD tkposition;
   math::XYZTLorentzVectorD tkmomentum;
+
+  bool crossedBoundary_;
+  int idAtBoundary_;
+  math::XYZVectorD positionAtBoundary_;
+  math::XYZTLorentzVectorD momentumAtBoundary_;
+  void assertCrossedBoundary() const {
+    if (!crossedBoundary_){
+      throw cms::Exception("Unknown", "SimTrack")
+        << "Assert crossed boundary failed for track " << trackId();
+      }
+    }
 };
 
 #include <iosfwd>

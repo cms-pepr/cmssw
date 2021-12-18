@@ -35,6 +35,8 @@ public:
 
   int globalBin(double eta, double phi) const { return phiBin(phi) + etaBin(eta) * T::nPhiBins; }
 
+  int nBins() const { return T::nBins; }
+
   void clear() {
     auto nBins = T::nEtaBins * T::nPhiBins;
     for (int j = 0; j < nBins; ++j)

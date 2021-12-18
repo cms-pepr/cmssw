@@ -136,15 +136,19 @@ void SimTrackManager::reallyStoreTracks(G4SimEvent* simEvent) {
     if (cit != mapTkCaloStateInfo.end()) {
       tcinfo = cit->second;
     }
-    simEvent->add(new G4SimTrack(trkH->trackID(),
-                                 trkH->particleID(),
-                                 trkH->momentum(),
-                                 trkH->totalEnergy(),
-                                 ivertex,
-                                 ig,
-                                 pm,
-                                 tcinfo.first,
-                                 tcinfo.second));
+    G4SimTrack * g4simtrack = new G4SimTrack(
+      trkH->trackID(),
+      trkH->particleID(),
+      trkH->momentum(),
+      trkH->totalEnergy(),
+      ivertex,
+      ig,
+      pm,
+      tcinfo.first,
+      tcinfo.second);
+    if (trkH->crossedBoundary())
+      g4simtrack->setCrossedBoundaryPosMom(trkH->getIDAtBoundary(), trkH->getPositionAtBoundary(), trkH->getMomentumAtBoundary());
+    simEvent->add(g4simtrack);
   }
 }
 

@@ -1,9 +1,12 @@
 #ifndef SimG4Core_TrackInformation_H
 #define SimG4Core_TrackInformation_H
 
+#include "FWCore/Utilities/interface/Exception.h"
 #include "G4VUserTrackInformation.hh"
-
 #include "G4Allocator.hh"
+#include "G4Track.hh"
+#include "DataFormats/Math/interface/Vector3D.h"
+#include "DataFormats/Math/interface/LorentzVector.h"
 
 class TrackInformation : public G4VUserTrackInformation {
 public:
@@ -55,6 +58,34 @@ public:
   int getIDfineCalo() const { return ((idFineCalo_ > 0) ? idFineCalo_ : idOnCaloSurface_); }
   void setIDfineCalo(int id) { idFineCalo_ = id; }
 
+  // Boundary crossing variables
+  void setCrossedBoundary(const G4Track* track){
+    crossedBoundary_ = true;
+    // Double-check units! Any conversions necessary? Is x,y,z,E fine for XYZTLorentzVectorD?
+    idAtBoundary_ = track->GetTrackID();
+    positionAtBoundary_ = math::XYZVectorD(
+      track->GetPosition().x(),
+      track->GetPosition().y(),
+      track->GetPosition().z()
+      );
+    momentumAtBoundary_ = math::XYZTLorentzVectorD(
+      track->GetMomentum().x(), track->GetMomentum().y(), track->GetMomentum().z(), track->GetKineticEnergy()
+      );
+    }
+  bool crossedBoundary() const { return crossedBoundary_; }
+  math::XYZVectorD getPositionAtBoundary() const {
+    assertCrossedBoundary();
+    return positionAtBoundary_;
+    }
+  math::XYZTLorentzVectorD getMomentumAtBoundary() const {
+    assertCrossedBoundary();
+    return momentumAtBoundary_;
+    }
+  int getIDAtBoundary() const {
+    assertCrossedBoundary();
+    return idAtBoundary_;
+    }
+
   // Generator information
   int genParticlePID() const { return genParticlePID_; }
   void setGenParticlePID(int id) { genParticlePID_ = id; }
@@ -84,11 +115,25 @@ private:
   int idLastVolume_;
   bool caloIDChecked_;
   int idFineCalo_;
+  bool crossedBoundary_;
+  bool idAtBoundary_;
+  math::XYZVectorD positionAtBoundary_;
+  math::XYZTLorentzVectorD momentumAtBoundary_;
+
   int genParticlePID_, caloSurfaceParticlePID_;
   double genParticleP_, caloSurfaceParticleP_;
 
   bool hasCastorHit_;
   int castorHitPID_;
+
+  void assertCrossedBoundary() const {
+    if (!crossedBoundary_){
+      throw cms::Exception("Unknown", "TrackInformation")
+        << "Assert crossed boundary failed for track "
+        << getIDonCaloSurface() << " (fine: " << getIDfineCalo() << ")"
+        ;
+      }
+    }
 
   // Restrict construction to friends
   TrackInformation()
@@ -104,6 +149,7 @@ private:
         idLastVolume_(-1),
         caloIDChecked_(false),
         idFineCalo_(-1),
+        crossedBoundary_(false),
         genParticlePID_(-1),
         caloSurfaceParticlePID_(0),
         genParticleP_(0),

@@ -162,7 +162,8 @@ private:
   float timeSlice;
   double eminHitD;
   double correctT;
-  bool useFineCaloID_;
+  bool doFineCalo_;
+  double eMinFine_;
 
   std::map<CaloHitID, CaloG4Hit*> hitMap;
   std::map<int, TrackWithHistory*> tkMap;

@@ -35,6 +35,7 @@ private:
   CMSSteppingVerbose* steppingVerbose_;
   const G4Track* g4Track_;
   bool checkTrack_;
+  bool doFineCalo_;
 };
 
 #endif
