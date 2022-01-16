@@ -20,6 +20,7 @@
 #include "DataFormats/Math/interface/deltaR.h"
 
 #include "CLHEP/Random/RandFlat.h"
+#include "CLHEP/Random/RandGauss.h"
 #include "CLHEP/Units/GlobalPhysicalConstants.h"
 #include "CLHEP/Units/GlobalSystemOfUnits.h"
 
@@ -37,6 +38,8 @@ void edm::FlatEtaRangeGunProducer::fillDescriptions(edm::ConfigurationDescriptio
   desc.add<double>("phiMin", 0.);
   desc.add<double>("phiMax", 2 * pi);
   desc.add<double>("minDr", -1.);
+  desc.add<double>("bsZSmear", -1.);
+
   desc.addUntracked<bool>("debug", false);
 
   descriptions.add("FlatEtaRangeGunProducer", desc);
@@ -54,6 +57,7 @@ edm::FlatEtaRangeGunProducer::FlatEtaRangeGunProducer(const edm::ParameterSet& p
       phiMin_(params.getParameter<double>("phiMin")),
       phiMax_(params.getParameter<double>("phiMax")),
       minDr_(params.getParameter<double>("minDr")),
+      bsZSmear_(params.getParameter<double>("bsZSmear")),
       debug_(params.getUntrackedParameter<bool>("debug")) {
   produces<edm::HepMCProduct>("unsmeared");
   produces<GenEventInfoProduct>();
@@ -131,7 +135,12 @@ void edm::FlatEtaRangeGunProducer::produce(edm::Event& event, const edm::EventSe
 
     previousp4.push_back(pVec);
 
-    HepMC::GenVertex* vtx = new HepMC::GenVertex(HepMC::FourVector(0, 0, 0, 0));
+    double vz = 0;
+    if(bsZSmear_>0){
+        vz = CLHEP::RandGauss::shoot(engine, 0., bsZSmear_);
+    }
+
+    HepMC::GenVertex* vtx = new HepMC::GenVertex(HepMC::FourVector(0, 0, vz*cm, 0));
 
     // create the GenParticle
     HepMC::FourVector fVec(pVec.x(), pVec.y(), pVec.z(), e);
