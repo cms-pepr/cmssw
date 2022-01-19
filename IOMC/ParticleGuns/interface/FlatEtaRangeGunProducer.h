@@ -56,6 +56,8 @@ namespace edm {
 
     double minDr_;
 
+    double bsZSmear_;
+
     // debug flag
     bool debug_;
 
