@@ -4,6 +4,7 @@
 <use name="FWCore/Utilities"/>
 <use name="DataFormats/NanoAOD"/>
 <use name="SimDataFormats/PFAnalysis"/>
+<use name="SimDataFormats/TrackingAnalysis"/>
 <use name="IOPool/Provenance"/>
 <use name="CondFormats/RunInfo"/>
 <use name="DataFormats/Candidate"/>

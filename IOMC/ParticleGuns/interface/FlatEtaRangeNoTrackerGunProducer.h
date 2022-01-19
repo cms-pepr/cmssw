@@ -47,6 +47,7 @@ namespace edm {
     // energy range
     double eMin_;
     double eMax_;
+    const std::vector<double> discreteEnergies_;
 
     // eta range
     double etaMin_;

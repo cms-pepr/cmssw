@@ -11,7 +11,8 @@
 #include <vector>
 #include <iostream>
 
-template <typename T, typename M>
+// P can only really be a double or float
+template <typename T, typename M, typename P>
 class ObjectIndexFromOneToManyQualAssociationTableProducer : public edm::global::EDProducer<> {
 public:
   ObjectIndexFromOneToManyQualAssociationTableProducer(edm::ParameterSet const& params)
@@ -19,7 +20,7 @@ public:
         branchName_(params.getParameter<std::string>("branchName")),
         doc_(params.getParameter<std::string>("docString")),
         src_(consumes<T>(params.getParameter<edm::InputTag>("src"))),
-        objMap_(consumes<edm::AssociationMap<edm::OneToManyWithQualityGeneric<T, M, float>>>(
+        objMap_(consumes<edm::AssociationMap<edm::OneToManyWithQualityGeneric<T, M, P>>>(
             params.getParameter<edm::InputTag>("objMap"))),
         cut_(params.getParameter<std::string>("cut"), true) {
     produces<nanoaod::FlatTable>("match");
@@ -32,7 +33,7 @@ public:
     edm::Handle<T> objs;
     iEvent.getByToken(src_, objs);
 
-    edm::Handle<edm::AssociationMap<edm::OneToManyWithQualityGeneric<T, M, float>>> assoc;
+    edm::Handle<edm::AssociationMap<edm::OneToManyWithQualityGeneric<T, M, P>>> assoc;
     iEvent.getByToken(objMap_, assoc);
     //std::cout << "Size of map is " << assoc->size() << std::endl;
 
@@ -62,7 +63,7 @@ public:
     tabNum->addColumn<int>(branchName_ + "NumMatch", nMatches, doc_);
     auto tabMatches = std::make_unique<nanoaod::FlatTable>(keys.size(), objName_+"_"+branchName_, false, false);
     tabMatches->addColumn<int>("MatchIdx", keys, doc_);
-    tabMatches->addColumn<int>("MatchQual", qualities, doc_);
+    tabMatches->addColumn<float>("MatchQual", qualities, doc_);
 
     iEvent.put(std::move(tabMatches), "match");
     iEvent.put(std::move(tabNum), "count");
@@ -71,6 +72,6 @@ public:
 protected:
   const std::string objName_, branchName_, doc_;
   const edm::EDGetTokenT<T> src_;
-  const edm::EDGetTokenT<edm::AssociationMap<edm::OneToManyWithQualityGeneric<T, M, float>>> objMap_;
+  const edm::EDGetTokenT<edm::AssociationMap<edm::OneToManyWithQualityGeneric<T, M, P>>> objMap_;
   const StringCutObjectSelector<typename T::value_type> cut_;
 };

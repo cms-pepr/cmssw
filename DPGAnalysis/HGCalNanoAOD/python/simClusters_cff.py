@@ -9,6 +9,9 @@ simClusterTable = cms.EDProducer("SimpleSimClusterFlatTableProducer",
     singleton = cms.bool(False), # the number of entries is variable
     extension = cms.bool(False), # this is the main table for the muons
     variables = cms.PSet(CandVars,
+        eventId = Var('eventId().event()', 'int', precision=-1, doc='Event ID (can be used to identify pileup'),
+        bunchCrossing = Var('eventId().bunchCrossing()', 'int', precision=-1, doc='bunch crossing (can be used to identify pileup'),
+        rawEventId = Var('eventId().rawId()', 'int', precision=-1, doc='Raw event ID (can be used to identify pileup'),
         lastPos_x = Var('g4Tracks.at(0).trackerSurfacePosition().x()', 'float', precision=14, doc='track x final position'),
         lastPos_y = Var('g4Tracks.at(0).trackerSurfacePosition().y()', 'float', precision=14, doc='track y final position'),
         lastPos_z = Var('g4Tracks.at(0).trackerSurfacePosition().z()', 'float', precision=14, doc='track z final position'),
