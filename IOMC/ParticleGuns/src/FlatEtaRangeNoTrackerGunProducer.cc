@@ -102,6 +102,7 @@ void edm::FlatEtaRangeNoTrackerGunProducer::produce(edm::Event& event, const edm
   }
 
   int particle_counter=0;
+  int unsuccessful_trials=0;
   std::vector<math::XYZPoint> previous_impacts;
 
   // shoot particles
@@ -155,17 +156,21 @@ void edm::FlatEtaRangeNoTrackerGunProducer::produce(edm::Event& event, const edm
             bool next=false;
             for(const auto& previ: previous_impacts){
                 math::XYZPoint this_im;
-                if(reco::deltaR(previ.eta(),previ.phi(),vertexPos.eta(),vertexPos.phi())  < minDistDR_){
+                if(reco::deltaR2(previ.eta(),previ.phi(),vertexPos.eta(),vertexPos.phi())  < minDistDR_*minDistDR_){
                     next=true;
                     break;
                 }
             }
             if(next){
                 i--;
+                unsuccessful_trials++;
                 if(debug_)
                     LogDebug("FlatEtaRangeNoTrackerGunProducer") << " : skipping too close particle" << std::endl;
+                if(unsuccessful_trials>20)
+                    break; //stop here
                 continue;
             }
+            unsuccessful_trials=0;//reset
             previous_impacts.push_back(math::XYZPoint(vertexPos.x(),vertexPos.y(),vertexPos.z()));
         }
 
