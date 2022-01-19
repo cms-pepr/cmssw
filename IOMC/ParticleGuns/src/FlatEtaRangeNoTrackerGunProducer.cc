@@ -33,8 +33,9 @@ void edm::FlatEtaRangeNoTrackerGunProducer::fillDescriptions(edm::ConfigurationD
   desc.add<int>("nParticles", 1);
   desc.add<bool>("exactShoot", true);
   desc.add<bool>("randomShoot", false);
-  desc.add<double>("eMin", 1.);
-  desc.add<double>("eMax", 100.);
+  desc.addUntracked<double>("eMin", 1.);
+  desc.addUntracked<double>("eMax", 100.);
+  desc.addUntracked<std::vector<double>>("discreteEnergies", {});
   desc.add<double>("etaMin", 1.5);
   desc.add<double>("etaMax", 3.0);
   desc.add<double>("phiMin", 0.);
@@ -52,8 +53,9 @@ edm::FlatEtaRangeNoTrackerGunProducer::FlatEtaRangeNoTrackerGunProducer(const ed
       nParticles_(params.getParameter<int>("nParticles")),
       exactShoot_(params.getParameter<bool>("exactShoot")),
       randomShoot_(params.getParameter<bool>("randomShoot")),
-      eMin_(params.getParameter<double>("eMin")),
-      eMax_(params.getParameter<double>("eMax")),
+      eMin_(params.getUntrackedParameter<double>("eMin", 1.)),
+      eMax_(params.getUntrackedParameter<double>("eMax", 100.)),
+      discreteEnergies_(params.getUntrackedParameter<std::vector<double>>("discreteEnergies", {})),
       etaMin_(params.getParameter<double>("etaMin")),
       etaMax_(params.getParameter<double>("etaMax")),
       phiMin_(params.getParameter<double>("phiMin")),
@@ -118,7 +120,13 @@ void edm::FlatEtaRangeNoTrackerGunProducer::produce(edm::Event& event, const edm
         if (i < n)
             eta *= -1;
         double phi = CLHEP::RandFlat::shoot(engine, phiMin_, phiMax_);
-        double e = CLHEP::RandFlat::shoot(engine, eMin_, eMax_);
+        double e = eMin_;
+        if (discreteEnergies_.empty())
+            e = CLHEP::RandFlat::shoot(engine, eMin_, eMax_);
+        else {
+            size_t eidx = CLHEP::RandFlat::shootInt(engine, discreteEnergies_.size());
+            e = discreteEnergies_[eidx];
+        }
         double m = pData->mass().value();
         double p = sqrt(e * e - m * m);
         math::XYZVector pVec = p

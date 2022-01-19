@@ -9,6 +9,9 @@ simClusterTable = cms.EDProducer("SimpleSimClusterFlatTableProducer",
     singleton = cms.bool(False), # the number of entries is variable
     extension = cms.bool(False), # this is the main table for the muons
     variables = cms.PSet(CandVars,
+        eventId = Var('eventId().event()', 'int', precision=-1, doc='Event ID (can be used to identify pileup'),
+        bunchCrossing = Var('eventId().bunchCrossing()', 'int', precision=-1, doc='bunch crossing (can be used to identify pileup'),
+        rawEventId = Var('eventId().rawId()', 'int', precision=-1, doc='Raw event ID (can be used to identify pileup'),
         lastPos_x = Var('g4Tracks.at(0).trackerSurfacePosition().x()', 'float', precision=14, doc='track x final position'),
         lastPos_y = Var('g4Tracks.at(0).trackerSurfacePosition().y()', 'float', precision=14, doc='track y final position'),
         lastPos_z = Var('g4Tracks.at(0).trackerSurfacePosition().z()', 'float', precision=14, doc='track z final position'),
@@ -53,9 +56,9 @@ simClusterToCaloPartTable = cms.EDProducer("SimClusterToCaloParticleIndexTablePr
 
 hgcSimTruth = cms.EDProducer("simmerger",
     useNLayers = cms.int32(1),
-    searchRadiusScale = cms.double(3.),
-    clusterRadiusScale = cms.double(2.),
-    mergeRadiusScale = cms.double(2.),
+    searchRadiusScale = cms.double(2.),
+    clusterRadiusScale = cms.double(1.5),
+    mergeRadiusScale = cms.double(1.5),
     energyContainment = cms.double(0.5),
     relOverlapDistance = cms.double(0.9)
                            )

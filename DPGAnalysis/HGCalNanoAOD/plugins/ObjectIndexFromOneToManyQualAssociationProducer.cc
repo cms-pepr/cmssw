@@ -6,13 +6,13 @@
 #include "DataFormats/CaloRecHit/interface/CaloCluster.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
 
-typedef ObjectIndexFromOneToManyQualAssociationTableProducer<std::vector<reco::CaloCluster>, SimClusterCollection>
+typedef ObjectIndexFromOneToManyQualAssociationTableProducer<std::vector<reco::CaloCluster>, SimClusterCollection, float>
     LayerClusterToSimClusterIndexTableProducer;
-typedef ObjectIndexFromOneToManyQualAssociationTableProducer<HGCRecHitCollection, SimClusterCollection>
+typedef ObjectIndexFromOneToManyQualAssociationTableProducer<HGCRecHitCollection, SimClusterCollection, float>
     CaloRecHitToSimClusterIndexTableProducer;
-typedef ObjectIndexFromOneToManyQualAssociationTableProducer<HGCRecHitCollection, std::vector<reco::CaloCluster>>
+typedef ObjectIndexFromOneToManyQualAssociationTableProducer<HGCRecHitCollection, std::vector<reco::CaloCluster>, float>
     HGCRecHitToLayerClusterIndexTableProducer;
-typedef ObjectIndexFromOneToManyQualAssociationTableProducer<SimClusterCollection, SimClusterCollection>
+typedef ObjectIndexFromOneToManyQualAssociationTableProducer<SimClusterCollection, SimClusterCollection, float>
     SimClusterToSimClustersIndexTableProducer;
 
 DEFINE_FWK_MODULE(LayerClusterToSimClusterIndexTableProducer);

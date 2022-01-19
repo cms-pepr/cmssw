@@ -1,17 +1,20 @@
 import FWCore.ParameterSet.Config as cms
 from PhysicsTools.NanoAOD.common_cff import CandVars,Var
-from DPGAnalysis.HGCalNanoAOD.simClusters_cff import simClusterTable
+from DPGAnalysis.HGCalNanoAOD.simClusters_cff import mergedSimClusterTable
 from DPGAnalysis.HGCalNanoAOD.hgcRecHits_cff import hgcRecHitsTable
 from DPGAnalysis.TrackNanoAOD.trackingParticles_cff import trackingParticleTable
+from DPGAnalysis.TrackNanoAOD.tracks_cff import generalTrackTable
 
 pfTruthParticles = cms.EDProducer("PFTruthParticleProducer",
     trackingParticles= cms.InputTag("mix:MergedTrackTruth"),
-    caloParticles= cms.InputTag("mix:MergedCaloTruth"),
-    simClusters = cms.InputTag("mix:MergedCaloTruth"),
+    caloParticles= cms.InputTag("mergedSCCaloParts"),
+    simClusters = cms.InputTag("hgcSimTruth"),
     simVertices= cms.InputTag("g4SimHits"),
     simTracks= cms.InputTag("g4SimHits"),
     caloRecHits = cms.InputTag("hgcRecHits"),
-    rechitToSimClusAssoc = cms.InputTag("hgcRecHitsToSimClusters:hgcRecHitsToBestSimClus"), 
+    tracks = generalTrackTable.src,
+    rechitToSimClusAssoc = cms.InputTag("hgcRecHitsToMergedSimClusters:hgcRecHitsToBestSimClus"), 
+    trackingPartToTrackAssoc = cms.InputTag("trackingParticleRecoTrackAsssociation"), 
 )
 
 pfTruthTable = cms.EDProducer("SimplePFTruthParticleFlatTableProducer",
@@ -29,8 +32,8 @@ pfTruthTable = cms.EDProducer("SimplePFTruthParticleFlatTableProducer",
 
 simClusterToPFTruthTable = cms.EDProducer("SimClusterToPFTruthParticleIndexTableProducer",
     cut = cms.string(""),
-    src = cms.InputTag("mix:MergedCaloTruth"),
-    objName = simClusterTable.name,
+    src = mergedSimClusterTable.src,
+    objName = mergedSimClusterTable.name,
     branchName = pfTruthTable.name,
     objMap = cms.InputTag("pfTruthParticles:simClusToPFTruth"),
     docString = cms.string("PFTruth particle to which the SimCluster is associated")
@@ -45,6 +48,15 @@ trackingPartToPFTruthTable = cms.EDProducer("TrackingParticleToPFTruthParticleIn
     docString = cms.string("PFTruth particle to which the TrackingPart is associated")
 )
 
+trackToPFTruthTable = cms.EDProducer("TrackToPFTruthParticleIndexTableProducer",
+    cut = generalTrackTable.cut,
+    src = generalTrackTable.src,
+    objName = generalTrackTable.name,
+    branchName = pfTruthTable.name,
+    objMap = cms.InputTag("pfTruthParticles:trackToPFTruth"),
+    docString = cms.string("PFTruth particle to which the reco::Track is associated (via the TrackingParticle match)")
+)
+
 recHitToPFTruthTable = cms.EDProducer("CaloRecHitToPFTruthParticleIndexTableProducer",
     cut = hgcRecHitsTable.cut,
     src = hgcRecHitsTable.src,
@@ -57,6 +69,7 @@ recHitToPFTruthTable = cms.EDProducer("CaloRecHitToPFTruthParticleIndexTableProd
 pfTruth = cms.Sequence(pfTruthParticles+pfTruthTable
         +simClusterToPFTruthTable
         +trackingPartToPFTruthTable
+        +trackToPFTruthTable
         +recHitToPFTruthTable 
         )
 

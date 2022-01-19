@@ -48,10 +48,13 @@ namespace edm {
     // eta range
     double etaMin_;
     double etaMax_;
+    const std::vector<double> discreteEnergies_;
 
     // phi range
     double phiMin_;
     double phiMax_;
+
+    double minDr_;
 
     // debug flag
     bool debug_;

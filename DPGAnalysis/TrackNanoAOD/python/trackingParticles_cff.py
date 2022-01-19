@@ -9,6 +9,9 @@ trackingParticleTable = cms.EDProducer("SimpleTrackingParticleFlatTableProducer"
     singleton = cms.bool(False), # the number of entries is variable
     extension = cms.bool(False), # this is the main table for the muons
     variables = cms.PSet(CandVars,
+        eventId = Var('eventId().event()', 'int', precision=-1, doc='Event ID (can be used to identify pileup'),
+        bunchCrossing = Var('eventId().bunchCrossing()', 'int', precision=-1, doc='bunch crossing (can be used to identify pileup'),
+        rawEventId = Var('eventId().rawId()', 'int', precision=-1, doc='Raw event ID (can be used to identify pileup'),
         nGenPart = Var('genParticles().size()', 'int', precision=-1, doc='Number of associated gen particles'),
         GenPartIdx = Var('? genParticles.size() ? genParticles().at(0).key() : -1', 'int', precision=-1, doc='Number of associated gen particles'),
         trackId = Var('g4Tracks.at(0).trackId', 'int', precision=-1, doc='Geant4 track ID of first track'),
@@ -25,4 +28,13 @@ trackingParticleTable = cms.EDProducer("SimpleTrackingParticleFlatTableProducer"
     )
 )
 
+trackingParticleToSCTable = cms.EDProducer("TrackingParticleToTrackIndexTableProducer",
+    cut = trackingParticleTable.cut,
+    src = trackingParticleTable.src,
+    objName = trackingParticleTable.name,
+    branchName = cms.string("Track"),
+    objMap = cms.InputTag("trackingParticleRecoTrackAsssociation"),
+    docString = cms.string("Index of the matching reco::Tracks") 
+)
 
+trackingParticleTables = cms.Sequence(trackingParticleTable+trackingParticleToSCTable)

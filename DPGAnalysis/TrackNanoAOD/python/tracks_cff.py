@@ -54,6 +54,29 @@ trackDisplacedTable = cms.EDProducer("SimpleTrackFlatTableProducer",
 trackSimClusterMatch = cms.EDProducer("RecoTrackToSimClusterAssociation",
     tracks = cms.InputTag("generalTracks"),
     simclusters = cms.InputTag("hgcSimTruth"),
-    )
+    dr = cms.double(0.4),
+)
 
-trackTables = cms.Sequence(generalTrackTable+generalTrackHGCPositionTable+trackConversionsTable+trackDisplacedTable+trackSimClusterMatch)
+trackSimClusterAssocTable = cms.EDProducer("RecoTrackToSimClusterIndexTableProducer",
+    cut = generalTrackTable.cut,
+    src = generalTrackTable.src,
+    objName = generalTrackTable.name,
+    branchName = cms.string("SimCluster"),
+    objMap = cms.InputTag("trackSimClusterMatch"),
+    docString = cms.string("Index of the best matching SimClusters (by pMag cluster/pMag track) within a dR cone of 0.4. Quality defined as pratio < 1 ? pratio : 2 - pratio") 
+)
+
+trackToTrackingParticleTable = cms.EDProducer("TrackToTrackingParticleIndexTableProducer",
+    cut = generalTrackTable.cut,
+    src = generalTrackTable.src,
+    objName = generalTrackTable.name,
+    branchName = cms.string("TrackingPart"),
+    objMap = cms.InputTag("trackingParticleRecoTrackAsssociation"),
+    docString = cms.string("Index of the matching TrackingParticles") 
+)
+
+
+trackTables = cms.Sequence(generalTrackTable+generalTrackHGCPositionTable+trackConversionsTable+trackDisplacedTable
+        +trackToTrackingParticleTable)
+
+trackSCAssocTable = cms.Sequence(trackSimClusterMatch+trackSimClusterAssocTable)

@@ -17,6 +17,7 @@
 #include "DataFormats/Math/interface/Vector3D.h"
 
 #include "IOMC/ParticleGuns/interface/FlatEtaRangeGunProducer.h"
+#include "DataFormats/Math/interface/deltaR.h"
 
 #include "CLHEP/Random/RandFlat.h"
 #include "CLHEP/Units/GlobalPhysicalConstants.h"
@@ -35,6 +36,7 @@ void edm::FlatEtaRangeGunProducer::fillDescriptions(edm::ConfigurationDescriptio
   desc.add<double>("etaMax", 3.0);
   desc.add<double>("phiMin", 0.);
   desc.add<double>("phiMax", 2 * pi);
+  desc.add<double>("minDr", -1.);
   desc.addUntracked<bool>("debug", false);
 
   descriptions.add("FlatEtaRangeGunProducer", desc);
@@ -51,6 +53,7 @@ edm::FlatEtaRangeGunProducer::FlatEtaRangeGunProducer(const edm::ParameterSet& p
       etaMax_(params.getParameter<double>("etaMax")),
       phiMin_(params.getParameter<double>("phiMin")),
       phiMax_(params.getParameter<double>("phiMax")),
+      minDr_(params.getParameter<double>("minDr")),
       debug_(params.getUntrackedParameter<bool>("debug")) {
   produces<edm::HepMCProduct>("unsmeared");
   produces<GenEventInfoProduct>();
@@ -86,6 +89,7 @@ void edm::FlatEtaRangeGunProducer::produce(edm::Event& event, const edm::EventSe
     n = nParticles_;
   }
 
+  std::vector<math::XYZVector > previousp4;
   int particle_counter = 0;
   // shoot particles
   for (int i = 0; i < 2 * n; i++) {  //n for positive and n for negative eta
@@ -102,10 +106,30 @@ void edm::FlatEtaRangeGunProducer::produce(edm::Event& event, const edm::EventSe
     if (i < n)
       eta *= -1;
     double phi = CLHEP::RandFlat::shoot(engine, phiMin_, phiMax_);
+
+
+
     double e = CLHEP::RandFlat::shoot(engine, eMin_, eMax_);
     double m = pData->mass().value();
     double p = sqrt(e * e - m * m);
     math::XYZVector pVec = p * math::XYZVector(cos(phi), sin(phi), sinh(eta)).unit();
+
+
+    //check
+    if(minDr_>0){
+        bool isgood=true;
+        for(const auto ppvec: previousp4){
+            double drsq = reco::deltaR2(pVec,ppvec);
+            if(drsq<minDr_){
+                isgood=false;
+                break;
+            }
+        }
+        if(!isgood)
+            continue;
+    }
+
+    previousp4.push_back(pVec);
 
     HepMC::GenVertex* vtx = new HepMC::GenVertex(HepMC::FourVector(0, 0, 0, 0));
 
