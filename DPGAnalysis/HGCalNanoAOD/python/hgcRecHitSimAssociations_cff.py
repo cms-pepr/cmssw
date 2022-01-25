@@ -2,6 +2,13 @@ import FWCore.ParameterSet.Config as cms
 from PhysicsTools.NanoAOD.common_cff import Var,P3Vars
 from DPGAnalysis.HGCalNanoAOD.hgcRecHits_cff import *
 
+
+hgcRecHitsToTiclCands = cms.EDProducer("LayerClusterToTICLCandidateAssociationProducer",
+    caloRecHits = cms.InputTag("hgcRecHits"),
+    layerClusters = cms.InputTag("hgcalLayerClusters"),
+    ticlCandidates = cms.InputTag("ticlTrackstersMerge")
+)
+
 hgcRecHitsToSimClusters = cms.EDProducer("SimClusterRecHitAssociationProducer",
     caloRecHits = cms.VInputTag("hgcRecHits"),
     simClusters = cms.InputTag("mix:MergedCaloTruth"),
@@ -92,6 +99,7 @@ mergedSimClusterRecEnergyTable = cms.EDProducer("SimClusterRecEnergyTableProduce
 hgcRecHitSimAssociationSequence = cms.Sequence(hgcRecHitsToSimClusters
                 +hgcRecHitsToMergedSimClusters
                 +hgcRecHitsToMergedDRSimClusters
+                +hgcRecHitsToTiclCands
                 +simClusterRecEnergyTable 
                 +mergedSimClusterRecEnergyTable 
                 +hgcRecHitsToSimClusterTable
