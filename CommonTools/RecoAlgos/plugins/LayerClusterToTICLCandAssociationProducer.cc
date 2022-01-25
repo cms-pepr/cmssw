@@ -81,8 +81,8 @@ private:
 
 LayerClusterToTICLCandidateAssociationProducer::LayerClusterToTICLCandidateAssociationProducer(const edm::ParameterSet& pset)
     : layerClustersToken_(consumes<std::vector<reco::CaloCluster>>(pset.getParameter<edm::InputTag>("layerClusters"))),
-      ticlCandToken_(consumes<TICLCandidateCollection>(pset.getParameter<edm::InputTag>("ticlTrackstersMerge"))),
-      recHitToken_(consumes<HGCRecHitCollection>(pset.getParameter<edm::InputTag>("ticlTrackstersMerge"))){
+      ticlCandToken_(consumes<TICLCandidateCollection>(pset.getParameter<edm::InputTag>("ticlCandidates"))),
+      recHitToken_(consumes<HGCRecHitCollection>(pset.getParameter<edm::InputTag>("caloRecHits"))){
 
     produces<edm::Association<TICLCandidateCollection>>();
 }
@@ -165,6 +165,8 @@ void LayerClusterToTICLCandidateAssociationProducer::produce(edm::Event& iEvent,
       }
     }
   }
+
+  std::cout << "LayerClusterToTICLCandidateAssociationProducer done" << std::endl;
 
   auto assoc = std::make_unique<edm::Association<TICLCandidateCollection>>(ticlCands);
   edm::Association<TICLCandidateCollection>::Filler filler(*assoc);
