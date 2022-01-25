@@ -15,6 +15,7 @@
 <use name="Geometry/TrackerGeometryBuilder"/>
 <use name="SimDataFormats/TrackingAnalysis"/>
 <use name="fastjet"/>
+<use name="RecoLocalCalo/HGCalRecAlgos" />
 <export>
   <lib name="1"/>
 </export>
