@@ -75,124 +75,103 @@ private:
 
   edm::EDGetTokenT<reco::CaloClusterCollection> layerClustersToken_;
   edm::EDGetTokenT<TICLCandidateCollection> ticlCandToken_;
-  std::vector<edm::EDGetTokenT<HGCRecHitCollection>> recHitTokens_;
+  edm::EDGetTokenT<HGCRecHitCollection> recHitToken_;
   hgcal::RecHitTools recHitTools_;
 };
 
 LayerClusterToTICLCandidateAssociationProducer::LayerClusterToTICLCandidateAssociationProducer(const edm::ParameterSet& pset)
     : layerClustersToken_(consumes<std::vector<reco::CaloCluster>>(pset.getParameter<edm::InputTag>("layerClusters"))),
       ticlCandToken_(consumes<TICLCandidateCollection>(pset.getParameter<edm::InputTag>("ticlTrackstersMerge"))),
-      recHitTokens_(edm::vector_transform(pset.getParameter<std::vector<edm::InputTag>>("recHitCollections"),
-                [this](const edm::InputTag& tag) {return consumes<HGCRecHitCollection>(tag); })){
+      recHitToken_(consumes<HGCRecHitCollection>(pset.getParameter<edm::InputTag>("ticlTrackstersMerge"))){
 
-    /* fill later
-    produces<RecHitToTICLCands>();
-  produces<LayerClusterToTICLCands>();
-  */ //for now to make it compile
+    produces<edm::Association<TICLCandidateCollection>>();
 }
 
 LayerClusterToTICLCandidateAssociationProducer::~LayerClusterToTICLCandidateAssociationProducer() {}
 
 // ------------ method called to produce the data  ------------
 void LayerClusterToTICLCandidateAssociationProducer::produce(edm::Event& iEvent, const edm::EventSetup& iSetup) {
+  edm::ESHandle<CaloGeometry> geom;
+  iSetup.get<CaloGeometryRecord>().get(geom);
+  recHitTools_.setGeometry(*geom);
 
-    edm::ESHandle<CaloGeometry> geom;
-    iSetup.get<CaloGeometryRecord>().get(geom);
-    recHitTools_.setGeometry(*geom);
+  edm::Handle<TICLCandidateCollection> ticlCands;
+  iEvent.getByToken(ticlCandToken_, ticlCands);
 
-    edm::Handle<TICLCandidateCollection> ticlCands;
-    iEvent.getByToken(ticlCandToken_, ticlCands);
+  edm::Handle<HGCRecHitCollection> recHits;
+  iEvent.getByToken(recHitToken_, recHits);
 
-    //convenient access. indices will refer to this later
-    std::vector<const HGCRecHit*> allrechits;
+  //convenient access. indices will refer to this later
+  std::vector<const HGCRecHit*> allrechits;
 
-    //for convenience
-    std::unordered_map<DetId, size_t> detid_to_rh_index;
+  //for convenience
+  std::unordered_map<DetId, size_t> detid_to_rh_index;
 
-    //hit energies (copied) that will be depleted during association
-    std::vector<float> remaining_rh_energies;//can come handy
-    size_t rhindex = 0;
-    for (auto& token : recHitTokens_) {
-      for (const auto& rh : iEvent.get(token)) {
-          detid_to_rh_index[rh.detid()] = rhindex;
-          rhindex++;
-          allrechits.push_back(&rh);
-          remaining_rh_energies.push_back(rh.energy());
-      }
+  //hit energies (copied) that will be depleted during association
+  size_t rhindex = 0;
+  for (const auto& rh : *recHits) {
+    detid_to_rh_index[rh.detid()] = rhindex;
+    rhindex++;
+    allrechits.push_back(&rh);
   }
 
   edm::Handle<std::vector<reco::CaloCluster>> layerClusterCollection;
   iEvent.getByToken(layerClustersToken_, layerClusterCollection);
 
-/*
-  auto lcAssocMap = std::make_unique<LayerClusterToSimCluster>(layerClusterCollection, ticlCands);
-  auto rhAssocMap = std::make_unique<RecHitToSimCluster>(caloRechitCollection, ticlCands);
-*/
-
-
-  //assign each LC to N TICL candidates
-
-  //index w.r.t. allrechits above and the ticl candidate index
-  std::map<size_t, std::vector<size_t> > hittotc;
+  //assigns a ticl candidate to each rechit
+  std::vector<int> hittotc(allrechits.size(), -1);
 
   for (size_t tcidx = 0; tcidx < ticlCands->size(); tcidx++) {
-      TICLCandidateRef ticlCand(ticlCands, tcidx);
-      for (const auto& trackster : ticlCand->tracksters()) {
+    TICLCandidateRef ticlCand(ticlCands, tcidx);
+    for (const auto& trackster : ticlCand->tracksters()) {
+      for (int lcidx : trackster->vertices()) {
+        //this is the simple part, use equal sharing
+        float targetfrac = 1. / trackster->vertex_multiplicity(lcidx);
+        const auto& lc = layerClusterCollection->at(lcidx);
 
-          for (int lcidx : trackster->vertices()) {
+        float targetEnergy = targetfrac * lc.energy();
 
-              //this is the simple part, use equal sharing
-              float targetfrac = 1./trackster->vertex_multiplicity(lcidx);
-              const auto & lc = layerClusterCollection->at(lcidx);
+        auto hafv = lc.hitsAndFractions();
 
-              float targetEnergy = targetfrac*lc.energy();
+        //calculate hit distances^2
+        std::vector<float> distances;
+        for (const auto& hwf : hafv) {
+          auto pos = recHitTools_.getPosition(hwf.first);
+          float dist =
+              reco::deltaR2(pos.eta(), pos.phi(), trackster->barycenter().eta(), trackster->barycenter().phi());
+          distances.push_back(dist);
+        }
 
-              auto hafv = lc.hitsAndFractions();
+        //re-order by distance^2
+        auto distidx = argsort(distances);
 
-              //calculate hit distances^2
-              std::vector<float> distances;
-              for(const auto& hwf: hafv){
-                  auto pos = recHitTools_.getPosition(hwf.first);
-                  float dist = reco::deltaR2(pos.eta(),pos.phi(),trackster->barycenter().eta(),trackster->barycenter().phi());
-                  distances.push_back(dist);
-              }
+        //deplete hit energies starting from closest until target energy reached
+        for (const auto& hidx : distidx) {
+          //float dist = distances.at(hidx);//doesn'tcidx matter here
+          auto rhdetid = hafv.at(hidx).first;
+          size_t rhidx = detid_to_rh_index[rhdetid];
+          float frachitenergy = allrechits.at(rhidx)->energy() * hafv.at(hidx).second;
 
-              //re-order by distance^2
-              auto distidx = argsort(distances);
-
-              //deplete hit energies starting from closest until target energy reached
-              for(const auto& hidx: distidx){
-                  //float dist = distances.at(hidx);//doesn'tcidx matter here
-                  auto rhdetid = hafv.at(hidx).first;
-                  size_t rhidx = detid_to_rh_index[rhdetid];
-                  float frachitenergy = allrechits.at(rhidx)->energy()*hafv.at(hidx).second;
-
-                  //if there is still energy left in the hit, even if it's just a bit use it
-                  if(remaining_rh_energies[rhidx]>0){
-                      //less target energy remaining
-                      targetEnergy -= frachitenergy;
-                      //part of hit energy has been used
-                      remaining_rh_energies[rhidx] -= frachitenergy;
-                      //associate
-                      hittotc[tcidx].push_back(rhidx);
-                  }
-                  if(targetEnergy<=0)//done with layer cluster
-                      break;
-              }
+          //if there is still energy left in the hit, even if it's just a bit use it
+          if (hittotc.at(rhidx)<0) {//not assigned yet
+            //less target energy remaining
+            targetEnergy -= frachitenergy;
+            //associate
+            hittotc.at(rhidx) = tcidx;
           }
+          if (targetEnergy <= 0)  //done with layer cluster
+            break;
+        }
       }
+    }
   }
 
-
-
-  /*later
-  auto assoc = std::make_unique<edm::Association<SimClusterCollection>>(scCollection);
-  edm::Association<SimClusterCollection>::Filler filler(*assoc);
-  filler.insert(caloRechitCollection, rechitIndices.begin(), rechitIndices.end());
+  auto assoc = std::make_unique<edm::Association<TICLCandidateCollection>>(ticlCands);
+  edm::Association<TICLCandidateCollection>::Filler filler(*assoc);
+  filler.insert(recHits, hittotc.begin(), hittotc.end());
   filler.fill();
-  //iEvent.put(std::move(assoc), label + "ToBestSimClus");
-  iEvent.put(std::move(assocMap));
-  */
+  iEvent.put(std::move(assoc));
+
 }
 
 // define this as a plug-in
