@@ -1,5 +1,6 @@
 import FWCore.ParameterSet.Config as cms
 from PhysicsTools.NanoAOD.common_cff import P3Vars,Var
+from DPGAnalysis.HGCalNanoAOD.hgcRecHits_cff import hgcRecHitsTable
 
 layerClusterTable = cms.EDProducer("SimpleCaloClusterFlatTableProducer",
     src = cms.InputTag("hgcalLayerClusters"),
@@ -29,5 +30,31 @@ layerClusterToSimClusterTable = cms.EDProducer("LayerClusterToSimClusterIndexTab
     docString = cms.string("Index of SimCluster matched to LayerCluster")
 )
 
-layerClusterTables = cms.Sequence(layerClusterTable+layerClusterToSimClusterTable)
+hgcRecHitsToLayerClusters = cms.EDProducer("RecHitToLayerClusterAssociationProducer",
+    caloRecHits = cms.VInputTag("hgcRecHits"),
+    layerClusters = cms.InputTag("hgcalLayerClusters"),
+)
+
+hgcRecHitsToLayerClusterTable = cms.EDProducer("HGCRecHitToLayerClusterIndexTableProducer",
+    cut = hgcRecHitsTable.cut,
+    src = hgcRecHitsTable.src,
+    objName = hgcRecHitsTable.name,
+    branchName = cms.string("LayerCluster"),
+    objMap = cms.InputTag("hgcRecHitsToLayerClusters:hgcRecHitsToLayerCluster"),
+    docString = cms.string("LayerCluster assigned largest RecHit fraction")
+)
+
+# For now there is only ever a 1 to 1 rechit to lc match
+hgcRecHitsToBestLayerClusterTable = cms.EDProducer("CaloRecHitToBestLayerClusterIndexTableProducer",
+    cut = hgcRecHitsTable.cut,
+    src = hgcRecHitsTable.src,
+    objName = hgcRecHitsTable.name,
+    branchName = layerClusterTable.name,
+    objMap = cms.InputTag("hgcRecHitsToLayerClusters:hgcRecHitsToBestLayerCluster"),
+    docString = cms.string("LayerCluster to which the RecHit is associated")
+)
+
+
+layerClusterTables = cms.Sequence(layerClusterTable+layerClusterToSimClusterTable+
+    hgcRecHitsToLayerClusters+hgcRecHitsToLayerClusterTable+hgcRecHitsToBestLayerClusterTable)
 

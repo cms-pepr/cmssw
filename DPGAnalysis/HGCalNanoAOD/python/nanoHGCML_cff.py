@@ -29,7 +29,6 @@ genParticleTable.variables = cms.PSet(genParticleTable.variables,
 
 nanoHGCMLSequence = cms.Sequence(nanoMetadata+
     genVertexTable+genVertexT0Table+genParticleTable+
-    layerClusterTables+
     simTrackTables+hgcSimHitsSequence+trackerSimHitTables+
     simClusterTables+
     trackingParticleTables+
@@ -38,6 +37,7 @@ nanoHGCMLSequence = cms.Sequence(nanoMetadata+
 
 nanoHGCMLRecoSequence = cms.Sequence(hgcRecHitsSequence+
         hgcRecHitSimAssociationSequence+
+        layerClusterTables+
         pfCandTable+pfTruth+
         pfTICLCandTable+
         ticlTables+
