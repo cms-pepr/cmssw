@@ -49,20 +49,6 @@ hgcRecHitsToPFTICLCandTable = cms.EDProducer("CaloRecHitToPFCandIndexTableProduc
     docString = cms.string("PFTICLCand with most associated energy in RecHit DetId")
 )
 
-hgcRecHitsToLayerClusters = cms.EDProducer("RecHitToLayerClusterAssociationProducer",
-    caloRecHits = cms.VInputTag("hgcRecHits"),
-    layerClusters = cms.InputTag("hgcalLayerClusters"),
-)
-
-hgcRecHitsToLayerClusterTable = cms.EDProducer("HGCRecHitToLayerClusterIndexTableProducer",
-    cut = hgcRecHitsTable.cut,
-    src = hgcRecHitsTable.src,
-    objName = hgcRecHitsTable.name,
-    branchName = cms.string("LayerCluster"),
-    objMap = cms.InputTag("hgcRecHitsToLayerClusters:hgcRecHitsToLayerCluster"),
-    docString = cms.string("LayerCluster assigned largest RecHit fraction")
-)
-
 hgcRecHitsPositionTable = cms.EDProducer("HGCRecHitPositionTableProducer",
     src = hgcRecHitsTable.src,
     cut = hgcRecHitsTable.cut, 
@@ -76,7 +62,5 @@ hgcRecHitsSequence = cms.Sequence(hgcRecHits
                 +hgcRecHitsToPFCandTable
                 +hgcRecHitsToPFTICLCands
                 +hgcRecHitsToPFTICLCandTable
-                +hgcRecHitsToLayerClusters 
-                +hgcRecHitsToLayerClusterTable
                 +hgcRecHitsPositionTable
 )

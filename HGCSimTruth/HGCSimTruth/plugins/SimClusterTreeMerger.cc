@@ -917,7 +917,6 @@ bool merge_leafparent(Node* leafparent){
     // Parent itself can be mergeable, if it has hits and is not a root
     if (leafparent->hasParent() && leafparent->hadHits()) mergeable.push_back(leafparent);
     // Start merging
-    std::cout << "while start" << std::endl;
     while(true){
         bool didUpdateThisIteration = false;
         float currentMinDistanceSq = FLT_MAX;
@@ -968,7 +967,6 @@ bool merge_leafparent(Node* leafparent){
 
     }
 
-    std::cout << "while ends" << std::endl;
     // Make a string representation of the mergeable nodes for debugging
     std::string mergeableStr = "";
     if(mergeable.size()){

@@ -55,11 +55,11 @@ simClusterToCaloPartTable = cms.EDProducer("SimClusterToCaloParticleIndexTablePr
 )
 
 hgcSimTruth = cms.EDProducer("simmerger",
-    useNLayers = cms.int32(1),
-    searchRadiusScale = cms.double(2.),
+    useNLayers = cms.int32(3),
+    searchRadiusScale = cms.double(2.0),
     clusterRadiusScale = cms.double(1.5),
-    mergeRadiusScale = cms.double(1.5),
-    energyContainment = cms.double(0.5),
+    mergeRadiusScale = cms.double(1.0),
+    energyContainment = cms.double(0.7),
     relOverlapDistance = cms.double(0.9)
                            )
 

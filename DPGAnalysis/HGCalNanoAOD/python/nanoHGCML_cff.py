@@ -10,6 +10,7 @@ from DPGAnalysis.HGCalNanoAOD.hgcRecHitSimAssociations_cff import *
 from DPGAnalysis.HGCalNanoAOD.simClusters_cff import *
 from DPGAnalysis.HGCalNanoAOD.layerClusters_cff import *
 from DPGAnalysis.HGCalNanoAOD.caloParticles_cff import *
+from DPGAnalysis.HGCalNanoAOD.ticlCandidates_cff import *
 from DPGAnalysis.TrackNanoAOD.trackSimHits_cff import *
 from DPGAnalysis.TrackNanoAOD.trackingParticles_cff import *
 from DPGAnalysis.TrackNanoAOD.tracks_cff import *
@@ -28,7 +29,6 @@ genParticleTable.variables = cms.PSet(genParticleTable.variables,
 
 nanoHGCMLSequence = cms.Sequence(nanoMetadata+
     genVertexTable+genVertexT0Table+genParticleTable+
-    layerClusterTables+
     simTrackTables+hgcSimHitsSequence+trackerSimHitTables+
     simClusterTables+
     trackingParticleTables+
@@ -37,8 +37,10 @@ nanoHGCMLSequence = cms.Sequence(nanoMetadata+
 
 nanoHGCMLRecoSequence = cms.Sequence(hgcRecHitsSequence+
         hgcRecHitSimAssociationSequence+
+        layerClusterTables+
         pfCandTable+pfTruth+
         pfTICLCandTable+
+        ticlTables+
         trackTables+
         trackSCAssocTable)
 

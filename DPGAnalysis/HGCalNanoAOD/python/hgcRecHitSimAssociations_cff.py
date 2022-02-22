@@ -2,6 +2,7 @@ import FWCore.ParameterSet.Config as cms
 from PhysicsTools.NanoAOD.common_cff import Var,P3Vars
 from DPGAnalysis.HGCalNanoAOD.hgcRecHits_cff import *
 
+
 hgcRecHitsToSimClusters = cms.EDProducer("SimClusterRecHitAssociationProducer",
     caloRecHits = cms.VInputTag("hgcRecHits"),
     simClusters = cms.InputTag("mix:MergedCaloTruth"),

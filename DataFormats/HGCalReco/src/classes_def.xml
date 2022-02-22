@@ -54,4 +54,8 @@
   <class name="std::vector<TICLCandidate>" />
   <class name="edm::Wrapper<TICLCandidate>" />
   <class name="edm::Wrapper<std::vector<TICLCandidate> >" />
+  <class name="edm::RefProd<vector<TICLCandidate> >"/>
+  <class name="edm::Wrapper<edm::RefProd<vector<TICLCandidate> >>"/>
+  <class name="edm::Association<std::vector<TICLCandidate>>"/>
+  <class name="edm::Wrapper<edm::Association<std::vector<TICLCandidate>> >"/>
 </lcgdict>
