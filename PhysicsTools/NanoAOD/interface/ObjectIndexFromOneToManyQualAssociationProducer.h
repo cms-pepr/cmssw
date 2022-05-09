@@ -22,7 +22,8 @@ public:
         src_(consumes<T>(params.getParameter<edm::InputTag>("src"))),
         objMap_(consumes<edm::AssociationMap<edm::OneToManyWithQualityGeneric<T, M, P>>>(
             params.getParameter<edm::InputTag>("objMap"))),
-        cut_(params.getParameter<std::string>("cut"), true) {
+        cut_(params.getParameter<std::string>("cut"), true),
+        storeBestMatch_(params.getUntrackedParameter<bool>("bestMatchTable", false)) {
     produces<nanoaod::FlatTable>("match");
     produces<nanoaod::FlatTable>("count");
   }
@@ -40,20 +41,44 @@ public:
     std::vector<int> keys;
     std::vector<float> qualities;
     std::vector<int> nMatches;
+
+    std::vector<int> bestIndices;
+    std::vector<int> bestQualities;
+    if (storeBestMatch_) {
+        bestIndices.resize(objs->size());
+        bestQualities.resize(objs->size());
+    }
     for (unsigned int i = 0; i < objs->size(); ++i) {
       edm::Ref<T> tk(objs, i);
       int nmatch = 0;
       if (cut_(*tk)) {
         if (assoc->numberOfAssociations(tk)) {
             auto& matchWithQual = (*assoc)[tk];
+            size_t i = 0;
             for (auto& match : matchWithQual) {
                 if (match.first.isNonnull()) {
                     keys.emplace_back(match.first.key());
                     qualities.emplace_back(match.second);
                 }
+                
+                if (i == 0 && storeBestMatch_) {
+                    if (match.first.isNonnull()) {
+                        bestIndices[i] = match.first.key();
+                        bestQualities[i] = match.second;
+                    }
+                    else {
+                        bestIndices[i] = -1;
+                        bestQualities[i] = 0.;
+                    }
+                }
             }
+            i++;
             nmatch = matchWithQual.size();
         } 
+        else if (storeBestMatch_) {
+            bestIndices[i] = -1;
+            bestQualities[i] = 0.;
+        }
         
         nMatches.emplace_back(nmatch);
       }
@@ -61,6 +86,10 @@ public:
 
     auto tabNum = std::make_unique<nanoaod::FlatTable>(nMatches.size(), objName_, false, true);
     tabNum->addColumn<int>(branchName_ + "NumMatch", nMatches, doc_);
+    if (storeBestMatch_) {
+        tabNum->addColumn<int>(branchName_ + "BestMatchIdx", bestIndices, doc_);
+        tabNum->addColumn<int>(branchName_ + "BestMatchQual", bestQualities, doc_);
+    }
     auto tabMatches = std::make_unique<nanoaod::FlatTable>(keys.size(), objName_+"_"+branchName_, false, false);
     tabMatches->addColumn<int>("MatchIdx", keys, doc_);
     tabMatches->addColumn<float>("MatchQual", qualities, doc_);
@@ -74,4 +103,5 @@ protected:
   const edm::EDGetTokenT<T> src_;
   const edm::EDGetTokenT<edm::AssociationMap<edm::OneToManyWithQualityGeneric<T, M, P>>> objMap_;
   const StringCutObjectSelector<typename T::value_type> cut_;
+  const bool storeBestMatch_;
 };

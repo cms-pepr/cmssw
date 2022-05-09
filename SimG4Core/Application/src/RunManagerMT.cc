@@ -62,6 +62,7 @@
 #include <memory>
 
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
+#include "FWCore/Utilities/interface/Exception.h"
 
 RunManagerMT::RunManagerMT(edm::ParameterSet const& p)
     : m_managerInitialized(false),
@@ -86,11 +87,12 @@ RunManagerMT::RunManagerMT(edm::ParameterSet const& p)
   m_kernel = new G4MTRunManagerKernel();
   m_stateManager = G4StateManager::GetStateManager();
   double th = p.getParameter<double>("ThresholdForGeometryExceptions") * CLHEP::GeV;
-  m_stateManager->SetExceptionHandler(new ExceptionHandler(th));
+  bool tr = p.getParameter<bool>("TraceExceptions");
+  m_stateManager->SetExceptionHandler(new ExceptionHandler(th, tr));
   m_check = p.getUntrackedParameter<bool>("CheckGeometry", false);
 }
 
-RunManagerMT::~RunManagerMT() {}
+RunManagerMT::~RunManagerMT() { delete m_UIsession; }
 
 void RunManagerMT::initG4(const DDCompactView* pDD,
                           const cms::DDCompactView* pDD4hep,
@@ -105,12 +107,15 @@ void RunManagerMT::initG4(const DDCompactView* pDD,
   int verb = m_pPhysics.getUntrackedParameter<int>("Verbosity", 0);
   int stepverb = m_p.getUntrackedParameter<int>("SteppingVerbosity", 0);
   edm::LogVerbatim("SimG4CoreApplication")
-      << "RunManagerMT: start initialising of geometry DD4Hep: " << geoFromDD4hep << "\n"
+      << "RunManagerMT: start initialising of geometry DD4hep: " << geoFromDD4hep << "\n"
       << "              cutsPerRegion: " << cuts << " cutForProton: " << protonCut << "\n"
       << "              G4 verbosity: " << verb;
 
   G4Timer timer;
   timer.Start();
+
+  G4UImanager::GetUIpointer()->SetCoutDestination(m_UIsession);
+  G4UImanager::GetUIpointer()->SetMasterUIManager(true);
 
   m_world = std::make_unique<DDDWorld>(pDD, pDD4hep, m_catalog, verb, cuts, protonCut);
   G4VPhysicalVolume* world = m_world.get()->GetWorldVolume();
@@ -133,7 +138,7 @@ void RunManagerMT::initG4(const DDCompactView* pDD,
   }
   m_kernel->DefineWorldVolume(world, true);
   m_registry.dddWorldSignal_(m_world.get());
-  G4StateManager::GetStateManager()->SetNewState(G4State_PreInit);
+  m_stateManager->SetNewState(G4State_PreInit);
 
   // Create physics list
   edm::LogVerbatim("SimG4CoreApplication") << "RunManagerMT: create PhysicsList";
@@ -141,13 +146,13 @@ void RunManagerMT::initG4(const DDCompactView* pDD,
   std::unique_ptr<PhysicsListMakerBase> physicsMaker(
       PhysicsListFactory::get()->create(m_pPhysics.getParameter<std::string>("type")));
   if (physicsMaker.get() == nullptr) {
-    throw edm::Exception(edm::errors::Configuration) << "Unable to find the Physics list requested";
+    throw cms::Exception("Configuration") << "Unable to find the Physics list requested";
   }
   m_physicsList = physicsMaker->make(m_pPhysics, m_registry);
 
   PhysicsList* phys = m_physicsList.get();
   if (phys == nullptr) {
-    throw edm::Exception(edm::errors::Configuration, "Physics list construction failed!");
+    throw cms::Exception("Configuration") << "Physics list construction failed!";
   }
   if (stepverb > 0) {
     verb = std::max(verb, 1);
@@ -198,7 +203,7 @@ void RunManagerMT::initG4(const DDCompactView* pDD,
   if (m_kernel->RunInitialization()) {
     m_managerInitialized = true;
   } else {
-    throw edm::Exception(edm::errors::LogicError, "G4RunManagerKernel initialization failed!");
+    throw cms::Exception("LogicError") << "G4RunManagerKernel initialization failed!";
   }
 
   if (m_StorePhysicsTables) {

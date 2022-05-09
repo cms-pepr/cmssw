@@ -13,6 +13,8 @@
 #include "CondFormats/AlignmentRecord/interface/RPMisalignedAlignmentRecord.h"
 #include "CondFormats/PPSObjects/interface/PPSTimingCalibration.h"
 #include "CondFormats/DataRecord/interface/PPSTimingCalibrationRcd.h"
+#include "CondFormats/PPSObjects/interface/PPSTimingCalibrationLUT.h"
+#include "CondFormats/DataRecord/interface/PPSTimingCalibrationLUTRcd.h"
 #include "CondFormats/PPSObjects/interface/LHCOpticalFunctionsSetCollection.h"
 #include "CondFormats/DataRecord/interface/CTPPSOpticsRcd.h"
 #include "CondFormats/PPSObjects/interface/PPSDirectSimulationData.h"
@@ -26,6 +28,12 @@
 #include "CondFormats/PPSObjects/interface/PPSAssociationCuts.h"
 #include "CondFormats/DataRecord/interface/PPSAssociationCutsRcd.h"
 
+namespace {
+  struct InitAssociationCuts {
+    void operator()(PPSAssociationCuts &cuts) { cuts.initialize(); }
+  };
+}  // namespace
+
 REGISTER_PLUGIN(CTPPSBeamParametersRcd, CTPPSBeamParameters);
 REGISTER_PLUGIN(CTPPSPixelDAQMappingRcd, CTPPSPixelDAQMapping);
 REGISTER_PLUGIN(CTPPSPixelAnalysisMaskRcd, CTPPSPixelAnalysisMask);
@@ -34,9 +42,11 @@ REGISTER_PLUGIN(CTPPSRPAlignmentCorrectionsDataRcd, CTPPSRPAlignmentCorrectionsD
 REGISTER_PLUGIN(RPRealAlignmentRecord, CTPPSRPAlignmentCorrectionsData);
 REGISTER_PLUGIN(RPMisalignedAlignmentRecord, CTPPSRPAlignmentCorrectionsData);
 REGISTER_PLUGIN(PPSTimingCalibrationRcd, PPSTimingCalibration);
+REGISTER_PLUGIN(PPSTimingCalibrationLUTRcd, PPSTimingCalibrationLUT);
 REGISTER_PLUGIN(CTPPSOpticsRcd, LHCOpticalFunctionsSetCollection);
 REGISTER_PLUGIN(PPSDirectSimulationDataRcd, PPSDirectSimulationData);
 REGISTER_PLUGIN(PPSPixelTopologyRcd, PPSPixelTopology);
 REGISTER_PLUGIN(PPSAlignmentConfigRcd, PPSAlignmentConfig);
 REGISTER_PLUGIN(PPSAlignmentConfigurationRcd, PPSAlignmentConfiguration);
-REGISTER_PLUGIN(PPSAssociationCutsRcd, PPSAssociationCuts);
+
+REGISTER_PLUGIN_INIT(PPSAssociationCutsRcd, PPSAssociationCuts, InitAssociationCuts);

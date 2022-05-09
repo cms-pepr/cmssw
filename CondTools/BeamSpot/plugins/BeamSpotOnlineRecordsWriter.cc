@@ -21,6 +21,7 @@
 #include <string>
 #include <fstream>
 #include <iostream>
+#include <ctime>
 
 // user include files
 #include "FWCore/Framework/interface/Frameworkfwd.h"
@@ -108,10 +109,11 @@ void BeamSpotOnlineRecordsWriter::endJob() {
   double cov[7][7];
   int type, lastAnalyzedLumi, firstAnalyzedLumi, lastAnalyzedRun, lastAnalyzedFill;
   std::string tag;
+  std::time_t lumiRangeBeginTime, lumiRangeEndTime;
 
   fasciiFile >> tag >> lastAnalyzedRun;
-  fasciiFile >> tag >> tag >> tag >> tag >> tag;  // BeginTimeOfFit parsing (not used in payload)
-  fasciiFile >> tag >> tag >> tag >> tag >> tag;  // EndTimeOfFit parsing (not used in payload)
+  fasciiFile >> tag >> tag >> tag >> tag >> lumiRangeBeginTime;  // BeginTimeOfFit parsing (not used in payload)
+  fasciiFile >> tag >> tag >> tag >> tag >> lumiRangeEndTime;    // EndTimeOfFit parsing (not used in payload)
   fasciiFile >> tag >> firstAnalyzedLumi;
   fasciiFile >> tag >> lastAnalyzedLumi;
   fasciiFile >> tag >> type;
@@ -136,11 +138,20 @@ void BeamSpotOnlineRecordsWriter::endJob() {
 
   lastAnalyzedFill = -999;
 
+  // Verify that the parsing was correct by checking the BS positions
+  if (std::fabs(x) > 1000. || std::fabs(x) < 1.e-20 || std::fabs(y) > 1000. || std::fabs(y) < 1.e-20 ||
+      std::fabs(z) > 1000. || std::fabs(z) < 1.e-20) {
+    throw edm::Exception(edm::errors::Unknown)
+        << " !!! Error in parsing input file, parsed BS (x,y,z): (" << x << "," << y << "," << z << ") !!!";
+  }
+
   edm::LogPrint("BeamSpotOnlineRecordsWriter") << "---- Parsed these parameters from input txt file ----";
   edm::LogPrint("BeamSpotOnlineRecordsWriter") << " lastAnalyzedRun   : " << lastAnalyzedRun;
   edm::LogPrint("BeamSpotOnlineRecordsWriter") << " lastAnalyzedFill  : " << lastAnalyzedFill;
   edm::LogPrint("BeamSpotOnlineRecordsWriter") << " firstAnalyzedLumi : " << firstAnalyzedLumi;
   edm::LogPrint("BeamSpotOnlineRecordsWriter") << " lastAnalyzedLumi  : " << lastAnalyzedLumi;
+  edm::LogPrint("BeamSpotOnlineRecordsWriter") << " lumiRangeBeginTime: " << lumiRangeBeginTime;
+  edm::LogPrint("BeamSpotOnlineRecordsWriter") << " lumiRangeEndTime  : " << lumiRangeEndTime;
   edm::LogPrint("BeamSpotOnlineRecordsWriter") << " type              : " << type;
   edm::LogPrint("BeamSpotOnlineRecordsWriter") << " x                 : " << x;
   edm::LogPrint("BeamSpotOnlineRecordsWriter") << " y                 : " << y;
@@ -176,27 +187,34 @@ void BeamSpotOnlineRecordsWriter::endJob() {
   edm::LogPrint("BeamSpotOnlineRecordsWriter") << " betastar          : " << betastar;
   edm::LogPrint("BeamSpotOnlineRecordsWriter") << "-----------------------------------------------------";
 
-  std::unique_ptr<BeamSpotOnlineObjects> abeam = std::make_unique<BeamSpotOnlineObjects>();
+  BeamSpotOnlineObjects abeam;
 
-  abeam->SetLastAnalyzedLumi(lastAnalyzedLumi);
-  abeam->SetLastAnalyzedRun(lastAnalyzedRun);
-  abeam->SetLastAnalyzedFill(lastAnalyzedFill);
-  abeam->SetType(type);
-  abeam->SetPosition(x, y, z);
-  abeam->SetSigmaZ(sigmaZ);
-  abeam->Setdxdz(dxdz);
-  abeam->Setdydz(dydz);
-  abeam->SetBeamWidthX(beamWidthX);
-  abeam->SetBeamWidthY(beamWidthY);
-  abeam->SetEmittanceX(emittanceX);
-  abeam->SetEmittanceY(emittanceY);
-  abeam->SetBetaStar(betastar);
+  abeam.setLastAnalyzedLumi(lastAnalyzedLumi);
+  abeam.setLastAnalyzedRun(lastAnalyzedRun);
+  abeam.setLastAnalyzedFill(lastAnalyzedFill);
+  abeam.setStartTimeStamp(lumiRangeBeginTime);
+  abeam.setEndTimeStamp(lumiRangeEndTime);
+  abeam.setType(type);
+  abeam.setPosition(x, y, z);
+  abeam.setSigmaZ(sigmaZ);
+  abeam.setdxdz(dxdz);
+  abeam.setdydz(dydz);
+  abeam.setBeamWidthX(beamWidthX);
+  abeam.setBeamWidthY(beamWidthY);
+  abeam.setEmittanceX(emittanceX);
+  abeam.setEmittanceY(emittanceY);
+  abeam.setBetaStar(betastar);
 
   for (int i = 0; i < 7; ++i) {
     for (int j = 0; j < 7; ++j) {
-      abeam->SetCovariance(i, j, cov[i][j]);
+      abeam.setCovariance(i, j, cov[i][j]);
     }
   }
+
+  // Set the creation time of the payload to the current time
+  auto creationTime =
+      std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+  abeam.setCreationTime(creationTime);
 
   edm::LogPrint("BeamSpotOnlineRecordsWriter") << " Writing results to DB...";
 
@@ -207,16 +225,16 @@ void BeamSpotOnlineRecordsWriter::endJob() {
       edm::LogPrint("BeamSpotOnlineRecordsWriter") << "new tag requested";
       if (fuseNewSince) {
         edm::LogPrint("BeamSpotOnlineRecordsWriter") << "Using a new Since: " << fnewSince;
-        poolDbService->createOneIOV<BeamSpotOnlineObjects>(*abeam, fnewSince, fLabel);
+        poolDbService->createOneIOV<BeamSpotOnlineObjects>(abeam, fnewSince, fLabel);
       } else
-        poolDbService->createOneIOV<BeamSpotOnlineObjects>(*abeam, poolDbService->beginOfTime(), fLabel);
+        poolDbService->createOneIOV<BeamSpotOnlineObjects>(abeam, poolDbService->beginOfTime(), fLabel);
     } else {
       edm::LogPrint("BeamSpotOnlineRecordsWriter") << "no new tag requested";
       if (fuseNewSince) {
         edm::LogPrint("BeamSpotOnlineRecordsWriter") << "Using a new Since: " << fnewSince;
-        poolDbService->appendOneIOV<BeamSpotOnlineObjects>(*abeam, fnewSince, fLabel);
+        poolDbService->appendOneIOV<BeamSpotOnlineObjects>(abeam, fnewSince, fLabel);
       } else
-        poolDbService->appendOneIOV<BeamSpotOnlineObjects>(*abeam, poolDbService->currentTime(), fLabel);
+        poolDbService->appendOneIOV<BeamSpotOnlineObjects>(abeam, poolDbService->currentTime(), fLabel);
     }
   }
   edm::LogPrint("BeamSpotOnlineRecordsWriter") << "[BeamSpotOnlineRecordsWriter] endJob done \n";

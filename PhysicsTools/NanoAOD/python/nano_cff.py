@@ -3,6 +3,7 @@ import FWCore.ParameterSet.Config as cms
 from PhysicsTools.NanoAOD.common_cff import *
 from PhysicsTools.NanoAOD.nano_eras_cff import *
 from PhysicsTools.NanoAOD.jets_cff import *
+from PhysicsTools.NanoAOD.jetMC_cff import *
 from PhysicsTools.NanoAOD.muons_cff import *
 from PhysicsTools.NanoAOD.taus_cff import *
 from PhysicsTools.NanoAOD.boostedTaus_cff import *
@@ -23,7 +24,8 @@ from PhysicsTools.NanoAOD.isotracks_cff import *
 from PhysicsTools.NanoAOD.protons_cff import *
 from PhysicsTools.NanoAOD.btagWeightTable_cff import *
 from PhysicsTools.NanoAOD.NanoAODEDMEventContent_cff import *
-
+from PhysicsTools.NanoAOD.fsrPhotons_cff import *
+from PhysicsTools.NanoAOD.softActivity_cff import *
 
 nanoMetadata = cms.EDProducer("UniqueStringProducer",
     strings = cms.PSet(
@@ -62,14 +64,15 @@ lhcInfoTable = cms.EDProducer("LHCInfoProducer",
 )
 
 nanoTableTaskCommon = cms.Task(
-     cms.Task(nanoMetadata), jetTask, extraFlagsProducersTask, muonTask, tauTask, boostedTauTask,
+     cms.Task(nanoMetadata), jetTask, jetForMETTask, extraFlagsProducersTask, muonTask, tauTask, boostedTauTask,
      electronTask , lowPtElectronTask, photonTask,
      vertexTask, isoTrackTask, jetLepTask,  # must be after all the leptons
+     softActivityTask,
      cms.Task(linkedObjects),
-     jetTablesTask, muonTablesTask, tauTablesTask, boostedTauTablesTask,
+     jetTablesTask, muonTablesTask, fsrTablesTask, tauTablesTask, boostedTauTablesTask,
      electronTablesTask, lowPtElectronTablesTask, photonTablesTask,
      globalTablesTask, vertexTablesTask, metTablesTask, simpleCleanerTable, extraFlagsTableTask,
-     isoTrackTablesTask
+     isoTrackTablesTask,softActivityTablesTask
  )
 
 nanoSequenceCommon = cms.Sequence(nanoTableTaskCommon)
@@ -143,41 +146,23 @@ def nanoAOD_addDeepInfo(process,addDeepBTag,addDeepFlavour):
     process.updatedJets.jetSource="selectedUpdatedPatJetsWithDeepInfo"
     return process
 
-def nanoAOD_addDeepMET(process, addDeepMETProducer, ResponseTune_Graph):
-    if addDeepMETProducer:
-        # produce DeepMET on the fly if it is not in MiniAOD
-        print("add DeepMET Producers")
-        process.load('RecoMET.METPUSubtraction.deepMETProducer_cfi')
-#        process.deepMETsResolutionTune = process.deepMETProducer.clone()
-        process.deepMETsResponseTune = process.deepMETProducer.clone()
-        #process.deepMETsResponseTune.graph_path = 'RecoMET/METPUSubtraction/data/deepmet/deepmet_resp_v1_2018.pb'
-        process.deepMETsResponseTune.graph_path = ResponseTune_Graph.value()
-    process.metTablesTask.add(process.deepMetTablesTask)
-    return process
 
 from PhysicsTools.PatUtils.tools.runMETCorrectionsAndUncertainties import runMetCorAndUncFromMiniAOD
 def nanoAOD_recalibrateMETs(process,isData):
-
     # add DeepMETs
     nanoAOD_DeepMET_switch = cms.PSet(
-        nanoAOD_addDeepMET_switch = cms.untracked.bool(True), # decide if DeeMET should be included in Nano
-        nanoAOD_produceDeepMET_switch = cms.untracked.bool(False), # decide if DeepMET should be computed on the fly
         ResponseTune_Graph = cms.untracked.string('RecoMET/METPUSubtraction/data/deepmet/deepmet_resp_v1_2018.pb')
     )
-    for modifier in run2_miniAOD_80XLegacy, run2_nanoAOD_94X2016, run2_nanoAOD_94XMiniAODv1, run2_nanoAOD_94XMiniAODv2, run2_nanoAOD_102Xv1, run2_nanoAOD_106Xv1:
-        # compute DeepMETs in these eras (before 111X)
-        modifier.toModify(nanoAOD_DeepMET_switch, nanoAOD_produceDeepMET_switch =  cms.untracked.bool(True))
     for modifier in run2_miniAOD_80XLegacy, run2_nanoAOD_94X2016:
         modifier.toModify(nanoAOD_DeepMET_switch, ResponseTune_Graph=cms.untracked.string("RecoMET/METPUSubtraction/data/deepmet/deepmet_resp_v1_2016.pb"))
-    if nanoAOD_DeepMET_switch.nanoAOD_addDeepMET_switch:
-        process = nanoAOD_addDeepMET(process,
-                                     addDeepMETProducer=nanoAOD_DeepMET_switch.nanoAOD_produceDeepMET_switch,
-                                     ResponseTune_Graph=nanoAOD_DeepMET_switch.ResponseTune_Graph)
 
-    # if included in Nano, and not computed in the fly, then it should be extracted from minAOD
-    extractDeepMETs = nanoAOD_DeepMET_switch.nanoAOD_addDeepMET_switch and not nanoAOD_DeepMET_switch.nanoAOD_produceDeepMET_switch
+    print("add DeepMET Producers")
+    process.load('RecoMET.METPUSubtraction.deepMETProducer_cfi')
+    process.deepMETsResolutionTune = process.deepMETProducer.clone()
+    process.deepMETsResponseTune = process.deepMETProducer.clone()
+    process.deepMETsResponseTune.graph_path = nanoAOD_DeepMET_switch.ResponseTune_Graph.value()
 
-    runMetCorAndUncFromMiniAOD(process,isData=isData, extractDeepMETs=extractDeepMETs)
+    runMetCorAndUncFromMiniAOD(process,isData=isData)
     process.nanoSequenceCommon.insert(2,cms.Sequence(process.fullPatMetSequence))
 
 
@@ -307,35 +292,8 @@ def nanoAOD_runMETfixEE2017(process,isData):
     process.nanoSequenceCommon.insert(2,process.fullPatMetSequenceFixEE2017)
 
 
-def nanoAOD_jetForT1met(process):
-    process.basicJetsForMetForT1METNano = cms.EDProducer("PATJetCleanerForType1MET",
-                                                          src = process.updatedJetsWithUserData.src,
-                                                          jetCorrEtaMax = cms.double(9.9),
-                                                          jetCorrLabel = cms.InputTag("L3Absolute"),
-                                                          jetCorrLabelRes = cms.InputTag("L2L3Residual"),
-                                                          offsetCorrLabel = cms.InputTag("L1FastJet"),
-                                                          skipEM = cms.bool(False),
-                                                          skipEMfractionThreshold = cms.double(0.9),
-                                                          skipMuonSelection = cms.string('isGlobalMuon | isStandAloneMuon'),
-                                                          skipMuons = cms.bool(True),
-                                                          type1JetPtThreshold = cms.double(0.0),
-                                                          calcMuonSubtrRawPtAsValueMap = cms.bool(True)
-                                                      )
-
-    process.jetTask.add(process.basicJetsForMetForT1METNano)
-    process.updatedJetsWithUserData.userFloats.muonSubtrRawPt = cms.InputTag("basicJetsForMetForT1METNano:MuonSubtrRawPt")
-    process.corrT1METJetTable.src = process.finalJets.src
-    process.corrT1METJetTable.cut = "pt<15 && abs(eta)<9.9"
-    process.metTablesTask.add(process.corrT1METJetTable)
-
-    for table in process.jetTable, process.corrT1METJetTable:
-        table.variables.muonSubtrFactor = Var("1-userFloat('muonSubtrRawPt')/(pt()*jecFactor('Uncorrected'))",float,doc="1-(muon-subtracted raw pt)/(raw pt)",precision=6)
-
-    return process
-
 def nanoAOD_customizeCommon(process):
 
-    process = nanoAOD_jetForT1met(process)
     process = nanoAOD_activateVID(process)
     nanoAOD_addDeepInfo_switch = cms.PSet(
         nanoAOD_addDeepBTag_switch = cms.untracked.bool(False),

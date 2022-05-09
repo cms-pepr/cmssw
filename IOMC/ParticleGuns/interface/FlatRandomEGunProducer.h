@@ -18,7 +18,7 @@ namespace edm {
 
     void produce(Event& e, const EventSetup& es) override;
 
-  private:
+  protected:
     // data members
 
     double fMinE;

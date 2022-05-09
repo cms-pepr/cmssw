@@ -4,7 +4,6 @@
 #include <memory>
 
 #include "FWCore/Framework/interface/Frameworkfwd.h"
-#include "FWCore/Framework/interface/EDAnalyzer.h"
 #include "FWCore/Framework/interface/Event.h"
 #include "FWCore/Framework/interface/MakerMacros.h"
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
@@ -889,8 +888,7 @@ void SiStripGainFromData::algoEndJob() {
 
     unsigned int GOOD = 0;
     unsigned int BAD = 0;
-    double MPVmean = MPVs->GetMean();
-    MPVmean = 300;
+    double MPVmean = 300.;  //MPVs->GetMean();
     for (auto it = APVsColl.begin(); it != APVsColl.end(); it++) {
       stAPVGain* APV = it->second;
       if (APV->MPV > 0) {
@@ -1416,7 +1414,7 @@ bool SiStripGainFromData::IsFarFromBorder(TrajectoryStateOnSurface trajState,
 
   double DistFromBorder = 1.0;
   //double HalfWidth      = it->surface().bounds().width()  /2.0;
-  double HalfLength = it->surface().bounds().length() / 2.0;
+  double HalfLength;
 
   if (trapezoidalBounds) {
     std::array<const float, 4> const& parameters = (*trapezoidalBounds).parameters();
@@ -1513,7 +1511,9 @@ std::unique_ptr<SiStripApvGain> SiStripGainFromData::getNewObject() {
       PreviousDetId = APV->DetId;
     }
     printf("%i | %i | PreviousGain = %7.5f NewGain = %7.5f\n", APV->DetId, APV->APVId, APV->PreviousGain, APV->Gain);
-    theSiStripVector->push_back(APV->Gain);
+    if (theSiStripVector != nullptr) {
+      theSiStripVector->push_back(APV->Gain);
+    }
     //      theSiStripVector->push_back(APV->Gain);
   }
 

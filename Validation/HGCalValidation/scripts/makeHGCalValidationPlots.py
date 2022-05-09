@@ -5,7 +5,7 @@ import os
 import argparse
 from time import time
 
-from RecoHGCal.TICL.iterativeTICL_cff import ticlIterLabels, ticlIterLabelsMerge
+from RecoHGCal.TICL.iterativeTICL_cff import ticlIterLabelsMerge
 
 from Validation.RecoTrack.plotting.validation import SeparateValidation, SimpleValidation, SimpleSample
 from Validation.HGCalValidation.HGCalValidator_cfi import hgcalValidator
@@ -14,7 +14,7 @@ import Validation.RecoTrack.plotting.plotting as plotting
 
 simClustersIters = [hgcalValidator.label_SimClustersLevel._InputTag__moduleLabel, "ticlSimTracksters"]
 trackstersIters = ['ticlTracksters'+iteration for iteration in ticlIterLabelsMerge]
-trackstersIters.extend(["ticlSimTracksters"])
+trackstersIters.extend(["ticlSimTracksters", "ticlSimTracksters_fromCPs"])
 
 hitCalLabel = 'hitCalibration'
 hitValLabel = 'hitValidation'
@@ -85,7 +85,7 @@ def main(opts):
                          "kaon0L": "310", "kaon0S": "130",
                          "kaon-": "-321", "kaon+": "321"}
         hgcaloPart = [hgcalPlots.hgcalCaloParticlesPlotter]
-        for i_part, i_partID in particletypes.iteritems() :
+        for i_part, i_partID in particletypes.items() :
             hgcalPlots.append_hgcalCaloParticlesPlots(sample.files(), i_partID, i_part)
         val.doPlots(hgcaloPart, plotterDrawArgs=drawArgs)
 

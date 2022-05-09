@@ -27,7 +27,7 @@ from Configuration.PyReleaseValidation.relval_upgrade import workflows as _upgra
 #        (Patatrack pixel-only: TTbar - on CPU: quadruplets, triplets)
 #        (Patatrack ECAL-only: TTbar - on CPU)
 #        (Patatrack HCAL-only: TTbar - on CPU)
-#   2021 (DD4HEP XML: TTbar, ZMM)
+#   2021 (DD4hep XML: TTbar, ZMM)
 #        (DDD DB: TTbar, ZMM)
 #        (ele guns 10, 35, 1000; pho guns 10, 35; mu guns 1, 10, 100, 1000, QCD 3TeV, QCD Flat)
 #        (ZMM, TTbar, ZEE, MinBias, TTbar PU, TTbar PU premix, ZEE PU, TTbar design, GluGluTo2Jets, GluGluTo2Jets PU)
@@ -38,6 +38,7 @@ from Configuration.PyReleaseValidation.relval_upgrade import workflows as _upgra
 #        (Patatrack HCAL-only: TTbar - on CPU)
 #        (TTbar 0T, TTbar PU 0T)
 #        (TTbar PU MLPF)
+#        (TTbar PU prod-like)
 #        (QCD 1.8TeV DeepCore)
 #   2023 (TTbar, TTbar PU, TTbar PU premix)
 #   2024 (TTbar, TTbar PU, TTbar PU premix)
@@ -66,6 +67,7 @@ numWFIB = [10001.0,10002.0,10003.0,10004.0,10005.0,10006.0,10007.0,10008.0,10009
            11634.521,
            11634.24,11834.24,
            11834.13,
+           11834.21,
            11723.17,
            12434.0,12634.0,12634.99,
            12834.0,13034.0,13034.99,]

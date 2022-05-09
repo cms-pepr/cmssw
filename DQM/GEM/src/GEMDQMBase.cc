@@ -26,7 +26,7 @@ int GEMDQMBase::initGeometry(edm::EventSetup const& iSetup) {
   return 0;
 }
 
-// Borrowed from DQMOffline/Muon/src/GEMOfflineDQMBase.cc
+// Borrowed from DQM/GEM/src/GEMOfflineDQMBase.cc
 int GEMDQMBase::getNumEtaPartitions(const GEMStation* station) {
   const auto&& superchambers = station->superChambers();
   if (not checkRefs(superchambers)) {
@@ -52,6 +52,8 @@ int GEMDQMBase::loadChambers() {
     int n_lay = sch->nChambers();
     for (int l = 0; l < n_lay; l++) {
       Bool_t bExist = false;
+      if (not sch->chamber(l + 1))
+        continue;
       for (const auto& ch : gemChambers_) {
         if (ch.id() == sch->chamber(l + 1)->id()) {
           bExist = true;
@@ -64,7 +66,7 @@ int GEMDQMBase::loadChambers() {
     }
   }
 
-  // Borrwed from DQMOffline/Muon/src/GEMOfflineMonitor.cc
+  // Borrwed from DQM/GEM/src/GEMOfflineMonitor.cc
   nMaxNumCh_ = 0;
   for (const GEMRegion* region : GEMGeometry_->regions()) {
     const int region_number = region->region();
@@ -86,6 +88,7 @@ int GEMDQMBase::loadChambers() {
         ME3IdsKey key3(region_number, station_number, layer_number);
         mapStationInfo_[key3] =
             MEStationInfo(region_number, station_number, layer_number, num_superchambers, num_etas, num_vfat, num_digi);
+        mapStationInfo_[key3].fMinPhi_ = -0.088344;  // FIXME
       }
     }
   }

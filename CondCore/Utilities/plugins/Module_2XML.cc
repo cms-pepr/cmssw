@@ -34,6 +34,7 @@ PAYLOAD_2XML_MODULE(pluginUtilities_payload2xml) {
   PAYLOAD_2XML_CLASS(PPSAlignmentConfig)
   PAYLOAD_2XML_CLASS(PPSAlignmentConfiguration)
   PAYLOAD_2XML_CLASS(PPSAssociationCuts)
+  PAYLOAD_2XML_CLASS(PPSTimingCalibrationLUT)
   PAYLOAD_2XML_CLASS(CastorChannelQuality);
   PAYLOAD_2XML_CLASS(CastorElectronicsMap);
   PAYLOAD_2XML_CLASS(CastorGainWidths);
@@ -195,6 +196,7 @@ PAYLOAD_2XML_MODULE(pluginUtilities_payload2xml) {
   PAYLOAD_2XML_CLASS(L1TMuonEndCapParams);
   PAYLOAD_2XML_CLASS(L1TMuonGlobalParams);
   PAYLOAD_2XML_CLASS(L1TMuonOverlapParams);
+  PAYLOAD_2XML_CLASS(L1TMuonOverlapFwVersion);
   PAYLOAD_2XML_CLASS(L1TUtmAlgorithm);
   PAYLOAD_2XML_CLASS(L1TUtmBin);
   PAYLOAD_2XML_CLASS(L1TUtmCondition);
@@ -205,6 +207,8 @@ PAYLOAD_2XML_MODULE(pluginUtilities_payload2xml) {
   PAYLOAD_2XML_CLASS(L1TUtmTriggerMenu);
   PAYLOAD_2XML_CLASS(L1TriggerKey);
   PAYLOAD_2XML_CLASS(L1TriggerKeyList);
+  PAYLOAD_2XML_CLASS(L1TriggerKeyExt);
+  PAYLOAD_2XML_CLASS(L1TriggerKeyListExt);
   PAYLOAD_2XML_CLASS(LHCInfo);
   PAYLOAD_2XML_CLASS(METCorrectorParametersCollection);
   PAYLOAD_2XML_CLASS(MEtXYcorrectParametersCollection);

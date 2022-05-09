@@ -1,13 +1,13 @@
-# hltGetConfiguration --full --data /dev/CMSSW_12_1_0/Fake2 --type Fake2 --unprescale --process HLTFake2 --globaltag auto:run2_hlt_Fake2 --input file:RelVal_Raw_Fake2_DATA.root
+# hltGetConfiguration --full --data /dev/CMSSW_12_3_0/Fake2 --type Fake2 --unprescale --process HLTFake2 --globaltag auto:run2_hlt_Fake2 --input file:RelVal_Raw_Fake2_DATA.root
 
-# /dev/CMSSW_12_1_0/Fake2/V6 (CMSSW_12_1_0)
+# /dev/CMSSW_12_3_0/Fake2/V5 (CMSSW_12_3_0_pre4)
 
 import FWCore.ParameterSet.Config as cms
 
 process = cms.Process( "HLTFake2" )
 
 process.HLTConfigVersion = cms.PSet(
-  tableName = cms.string('/dev/CMSSW_12_1_0/Fake2/V6')
+  tableName = cms.string('/dev/CMSSW_12_3_0/Fake2/V5')
 )
 
 process.streams = cms.PSet(  A = cms.vstring( 'InitialPD' ) )
@@ -199,6 +199,7 @@ process.hltGtStage2Digis = cms.EDProducer( "L1TRawToDigi",
 )
 process.hltGtStage2ObjectMap = cms.EDProducer( "L1TGlobalProducer",
     MuonInputTag = cms.InputTag( 'hltGtStage2Digis','Muon' ),
+    MuonShowerInputTag = cms.InputTag( "" ),
     EGammaInputTag = cms.InputTag( 'hltGtStage2Digis','EGamma' ),
     TauInputTag = cms.InputTag( 'hltGtStage2Digis','Tau' ),
     JetInputTag = cms.InputTag( 'hltGtStage2Digis','Jet' ),
@@ -209,6 +210,7 @@ process.hltGtStage2ObjectMap = cms.EDProducer( "L1TGlobalProducer",
     AlgorithmTriggersUnprescaled = cms.bool( True ),
     RequireMenuToMatchAlgoBlkInput = cms.bool( True ),
     AlgorithmTriggersUnmasked = cms.bool( True ),
+    useMuonShowers = cms.bool( False ),
     ProduceL1GtDaqRecord = cms.bool( True ),
     ProduceL1GtObjectMapRecord = cms.bool( True ),
     EmulateBxInEvent = cms.int32( 1 ),
@@ -348,9 +350,10 @@ process.DQMOutput = cms.EndPath( process.dqmOutput )
 
 
 
-process.HLTSchedule = cms.Schedule( *(process.HLTriggerFirstPath, process.HLT_Physics_v1, process.HLT_Random_v1, process.HLT_ZeroBias_v1, process.HLTriggerFinalPath, process.HLTAnalyzerEndpath, process.AOutput, process.DQMOutput, ))
+process.schedule = cms.Schedule( *(process.HLTriggerFirstPath, process.HLT_Physics_v1, process.HLT_Random_v1, process.HLT_ZeroBias_v1, process.HLTriggerFinalPath, process.HLTAnalyzerEndpath, process.AOutput, process.DQMOutput, ))
 
 
+# source module (EDM inputs)
 process.source = cms.Source( "PoolSource",
     fileNames = cms.untracked.vstring(
         'file:RelVal_Raw_Fake2_DATA.root',
@@ -377,6 +380,7 @@ if 'GlobalTag' in process.__dict__:
     from Configuration.AlCa.GlobalTag import GlobalTag as customiseGlobalTag
     process.GlobalTag = customiseGlobalTag(process.GlobalTag, globaltag = 'auto:run2_hlt_Fake2')
 
+# show summaries from trigger analysers used at HLT
 if 'MessageLogger' in process.__dict__:
     process.MessageLogger.TriggerSummaryProducerAOD = cms.untracked.PSet()
     process.MessageLogger.L1GtTrigReport = cms.untracked.PSet()
@@ -398,6 +402,7 @@ _customInfo['maxEvents' ]=  100
 _customInfo['globalTag' ]= "auto:run2_hlt_Fake2"
 _customInfo['inputFile' ]=  ['file:RelVal_Raw_Fake2_DATA.root']
 _customInfo['realData'  ]=  True
+
 from HLTrigger.Configuration.customizeHLTforALL import customizeHLTforAll
 process = customizeHLTforAll(process,"Fake2",_customInfo)
 

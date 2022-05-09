@@ -9,8 +9,8 @@ process.load('SimGeneral.HepPDTESSource.pythiapdt_cfi')
 process.load('FWCore.MessageService.MessageLogger_cfi')
 process.load('Configuration.EventContent.EventContent_cff')
 process.load('SimGeneral.MixingModule.mixNoPU_cfi')
-process.load('Configuration.Geometry.GeometryExtended2026D70Reco_cff')
-process.load('Configuration.Geometry.GeometryExtended2026D70_cff')
+process.load('Configuration.Geometry.GeometryExtended2026D84Reco_cff')
+process.load('Configuration.Geometry.GeometryExtended2026D84_cff')
 process.load('Configuration.StandardSequences.MagneticField_cff')
 process.load('Configuration.StandardSequences.Generator_cff')
 process.load('IOMC.EventVertexGenerators.VtxSmearedRealistic50ns13TeVCollision_cfi')
@@ -22,7 +22,6 @@ process.load('Configuration.StandardSequences.Digi_cff')
 process.load('Configuration.StandardSequences.SimL1Emulator_cff')
 process.load('Configuration.StandardSequences.L1TrackTrigger_cff')
 process.load('Configuration.StandardSequences.DigiToRaw_cff')
-process.load('HLTrigger.Configuration.HLT_Fake2_cff')
 process.load('Configuration.StandardSequences.RawToDigi_cff')
 process.load('Configuration.StandardSequences.L1Reco_cff')
 process.load('Configuration.StandardSequences.Reconstruction_cff')
@@ -42,7 +41,12 @@ if hasattr(process,'MessageLogger'):
 process.source = cms.Source("EmptySource")
 
 process.options = cms.untracked.PSet(
-    wantSummary = cms.untracked.bool(True)
+    wantSummary = cms.untracked.bool(True),
+    numberOfConcurrentRuns = cms.untracked.uint32(1),
+    numberOfStreams = cms.untracked.uint32(0),
+    numberOfThreads = cms.untracked.uint32(1),
+    printDependencies = cms.untracked.bool(False),
+    sizeOfStackForThreadsInKB = cms.optional.untracked.uint32,
 )
 
 # Production Info
@@ -140,7 +144,6 @@ process.schedule = cms.Schedule(process.generation_step,
                                 process.L1simulation_step,
                                 process.L1TrackTrigger_step,
                                 process.digi2raw_step,
-#                                process.HLTSchedule,
                                 process.raw2digi_step,
                                 process.L1Reco_step,
                                 process.reconstruction_step,

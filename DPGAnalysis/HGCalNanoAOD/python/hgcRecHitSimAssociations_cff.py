@@ -41,6 +41,7 @@ hgcRecHitsToMergedSimClusterTable = cms.EDProducer("CaloRecHitToSimClusterIndexT
     objName = hgcRecHitsTable.name,
     branchName = cms.string("MergedSimCluster"),
     objMap = cms.InputTag("hgcRecHitsToMergedSimClusters:hgcRecHitsToSimClus"),
+    bestMatchTable = cms.untracked.bool(True),
     docString = cms.string("MergedSimClusters ordered by most sim energy in RecHit DetId")
 )
 

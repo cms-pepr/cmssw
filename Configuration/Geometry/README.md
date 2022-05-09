@@ -66,6 +66,9 @@ Tracker:
 * T25: Phase2 tilted tracker. Outer Tracker (v8.0.0): same as T24/T21. Inner Tracker (v7.0.2): Based on (v6.1.5) (T24/T21), but with 3D sensors in TBPX L1. Compatible with DD4hep library.
 * T26: Phase2 tilted tracker. Outer Tracker (v8.0.0): same as T24/T21. Inner Tracker (v7.0.3): Based on (v6.1.5) (T24/T21), but with 3D sensors in TBPX L1 and 50x50 pixel aspect ratio in TFPX and TEPX. Compatible with DD4hep library.
 * T27: Phase2 tilted tracker. Outer Tracker (v8.0.0): same as T24/T21. Inner Tracker (v8.0.0): Based on (v7.0.2) (T25), but with bricked pixels in the central rod of TBPX L2 and in the central 3 rods of TBPX L3+4. All pixels in TFPX and TEPX are bricked. Compatible with DD4hep library.
+* T28: Phase2 tilted tracker. Outer Tracker (v8.0.0): same as T24/T21. Inner Tracker (v8.0.2): Based on (v7.0.2) (T25), but with bricked pixels in the central rod of TBPX L2+L3 and in the central 3 rods of TBPX L4, as well as in TFPX disks 5-8 and in TEPX. The other barrel pixels, and those in TFPX disks 1-4, are 25x100 mum planar. Compatible with DD4hep library.
+* T29: Phase2 tilted tracker. Outer Tracker (v8.0.0): same as T24/T21. Inner Tracker (v8.0.3): Based on (v7.0.2) (T25), but with bricked pixels in the central rod of TBPX L2+L3 and in the central 3 rods of TBPX L4, and with 50x50 mum pixels in TFPX and TEPX. Compatible with DD4hep library.
+* T30: Phase2 titled tracker. Exploratory geometry *only to be used in D91 for now*. Outer Tracker (v8.0.1): based on v8.0.0 with updated TB2S spacing. Inner Tracker (v6.4.0): based on v6.1.5 but TFPX with more realistic module positions.
 
 Calorimeters:
 * C9: HGCal (v11 post TDR HGCal Geometry w/ corner centering for HE part) + Phase2 HCAL and EB + Tracker cables (used in 2026D49)
@@ -75,7 +78,7 @@ Calorimeters:
 * C14: HGCal (v14 version reading the input from the flat file and uses it to create geometry, still using masking to define partial wafers) + Phase2 HCAL and EB (used in 2026D76-81, 2026D85, 2026D87)
 * C15: HGCal (as in C14) + HFNose with corrected wafer size  + Phase2 HCAL and EB (used in 2026D82)
 * C16: HGCal (v15 version of HGCal geometry created using real full and partial silicon modules using the constants of the flat file) + Phase2 HCAL and EB (used in 2026D83)
-* C17: HGCal (v16 version of HGCal geometry created with new longitudinal structure having 47 layers and new definition of partial wafers using the constants of the flat file) + Phase2 HCAL and EB (used in 2026D86)
+* C17: HGCal (v16 version of HGCal geometry created with new longitudinal structure having 47 layers and new definition of partial wafers using the constants of the flat file) + Phase2 HCAL and EB (used in 2026D86, 2025D88)
 
 Muon system:
 * M4: Phase2 muon system for TDR w/ GE2/1, ME0, RE3/1, RE4/1 (incl. granularity in ME0, staggered GE2/1), 96 iRPC strips, no overlaps, MB4Shields
@@ -83,7 +86,7 @@ Muon system:
 * M7: same as M6 with further ajustment of ME0 for boundaries
 * M8: same as M7 with changed number of strips for GE21
 * M9: same as M8 with GE0 replacing ME0
-* M10: same as M9 but with a realistic support structure for GE0
+* M10: same as M9 but with a realistic support structure for GE0, Shield structure modified in muonYoke
 
 Fast Timing system:
 * I10: Fast Timing detector (LYSO barrel (bars along phi flat), silicon endcap), w/ passive materials, ETL in position defined in O4, material adjustments
@@ -91,6 +94,7 @@ Fast Timing system:
 * I12: Starting from I11, new ETL layout from MTD TDR
 * I13: Starting from I11, new ETL layout from post MTD TDR (2 sectors per disc face)
 * I14: Same as I13, updated sensor structure, disc z location and passive materials
+* I15: Same as I14, addition of notch and revision of envelope
 
 The script also handles the common and forward elements of the geometry:
 * O4: detailed cavern description, changes for modified CALO region for endcap part, no overlaps inside the Muon System 
@@ -98,6 +102,7 @@ The script also handles the common and forward elements of the geometry:
 * O6: same as O5 with changes needed for new defintion of boundaries
 * O7: same as O6 with changes needed for new defintion of calorimeter boundaries
 * O8: same as O7 with changes needed for a newer definition of calorimeter boundaries
+* O9: same as O8 with changes needed to support the additional notch in ETL
 
 * F2: modifications needed to accommodate detailed cavern, ZDC description is removed.
 * F3: same as F2 but changes due to HFNose
@@ -105,6 +110,7 @@ The script also handles the common and forward elements of the geometry:
 * F5: same as F4 but changes due to HFNose
 * F6: same as F4 with modifications needed for BRM and forward shield
 * F7: same as F6 with modifications needed for HFNose
+* F8: same as F6 or F7 without BRM
 
 Several detector combinations have been generated:
 * D49 = T15+C9+M4+I10+O4+F2 (HLT TDR baseline)
@@ -123,3 +129,7 @@ Several detector combinations have been generated:
 * D85 = T24+C14+M9+I14+O7+F6
 * D86 = T24+C17+M10+I14+O8+F6
 * D87 = T27+C14+M9+I13+O7+F6
+* D88 = T24+C17+M10+I15+O9+F6
+* D89 = T28+C14+M9+I13+O7+F8
+* D90 = T29+C14+M9+I13+O7+F8
+* D91 = T30+C17+M10+I15+O9+F6

@@ -36,7 +36,7 @@
 
 <test name="import-anyio" command="python3 -c 'import anyio'"/>
 <test name="import-jinja2" command="python3 -c 'import jinja2'"/>
-<test name="import-keras" command="python3 -c 'import keras'"/>
+<test name="import-keras" command="python3 -c 'import tensorflow.keras'"/>
 <test name="import-markupsafe" command="python3 -c 'import markupsafe'"/>
 <test name="import-yaml" command="python3 -c 'import yaml'"/>
 <test name="import-pygments" command="python3 -c 'import pygments'"/>
@@ -49,7 +49,6 @@
 <test name="import-certifi" command="python3 -c 'import certifi'"/>
 <test name="import-chardet" command="python3 -c 'import chardet'"/>
 <test name="import-click" command="python3 -c 'import click'"/>
-<test name="import-climate" command="python3 -c 'import climate'"/>
 <test name="import-cycler" command="python3 -c 'import cycler'"/>
 <test name="import-cython" command="python3 -c 'import cython'"/>
 <test name="import-decorator" command="python3 -c 'import decorator'"/>
@@ -65,8 +64,6 @@
 <test name="import-hep_ml" command="python3 -c 'import hep_ml'"/>
 <test name="import-histbook" command="python3 -c 'import histbook'"/>
 <test name="import-html5lib" command="python3 -c 'import html5lib'"/>
-<test name="import-hyperas" command="python3 -c 'import hyperas'"/>
-<test name="import-hyperopt" command="python3 -c 'import hyperopt'"/>
 <test name="import-idna" command="python3 -c 'import idna'"/>
 <test name="import-ipykernel" command="python3 -c 'import ipykernel'"/>
 <test name="import-ipython_genutils" command="python3 -c 'import ipython_genutils'"/>
@@ -74,7 +71,6 @@
 <test name="import-jinja2" command="python3 -c 'import jinja2'"/>
 <test name="import-jsonpickle" command="python3 -c 'import jsonpickle'"/>
 <test name="import-jsonschema" command="python3 -c 'import jsonschema'"/>
-<test name="import-jupyter" command="python3 -c 'import jupyter'"/>
 <test name="import-jupyter_client" command="python3 -c 'import jupyter_client'"/>
 <test name="import-jupyter_console" command="python3 -c 'import jupyter_console'"/>
 <test name="import-jupyter_core" command="python3 -c 'import jupyter_core'"/>
@@ -84,7 +80,6 @@
 <test name="import-mpmath" command="python3 -c 'import mpmath'"/>
 <test name="import-nbformat" command="python3 -c 'import nbformat'"/>
 <test name="import-networkx" command="python3 -c 'import networkx'"/>
-<test name="import-nose" command="python3 -c 'import nose'"/>
 <test name="import-notebook" command="python3 -c 'import notebook'"/>
 <test name="import-numexpr" command="python3 -c 'import numexpr'"/>
 <test name="import-numpy" command="python3 -c 'import numpy'"/>
@@ -112,8 +107,6 @@
 <test name="import-sqlite3" command="python3 -c 'import sqlite3'"/>
 <test name="import-pytz" command="python3 -c 'import pytz'"/>
 <test name="import-zmq" command="python3 -c 'import zmq'"/>
-<test name="import-qtconsole" command="python3 -c 'import qtconsole'"/>
-<test name="import-rep" command="python3 -c 'import rep'"/>
 <test name="import-requests" command="python3 -c 'import requests'"/>
 <test name="import-scandir" command="python3 -c 'import scandir'"/>
 <test name="import-schema" command="python3 -c 'import schema'"/>
@@ -130,7 +123,6 @@
 <test name="import-tensorflow" command="python3 -c 'import tensorflow'"/>
 <test name="import-terminado" command="python3 -c 'import terminado'"/>
 <test name="import-testpath" command="python3 -c 'import testpath'"/>
-<test name="import-theanets" command="python3 -c 'import theanets'"/>
 <test name="import-tornado" command="python3 -c 'import tornado'"/>
 <test name="import-tqdm" command="python3 -c 'import tqdm'"/>
 <test name="import-traitlets" command="python3 -c 'import traitlets'"/>
@@ -143,7 +135,6 @@
 <test name="import-werkzeug" command="python3 -c 'import werkzeug'"/>
 <test name="import-widgetsnbextension" command="python3 -c 'import widgetsnbextension'"/>
 <test name="import-xgboost" command="python3 -c 'import xgboost'"/>
-<test name="import-h5py_cache" command="python3 -c 'import h5py_cache'"/>
 <test name="import-google" command="python3 -c 'import google'"/>
 <test name="import-lxml" command="python3 -c 'import lxml'"/>
 <test name="import-bs4" command="python3 -c 'import bs4'"/>

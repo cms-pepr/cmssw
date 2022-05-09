@@ -109,11 +109,15 @@ void OnlineBeamMonitor::bookHistograms(DQMStore::IBooker& ibooker,
   // create and cd into new folder
   ibooker.setCurrentFolder(monitorName_ + "Validation");
   //Book histograms
-  bsChoice_ = ibooker.book1D("bsChoice",
-                             "Choice between HLT (+1) and Legacy (-1) BS",
-                             lastLumi - firstLumi + 1,
-                             firstLumi - 0.5,
-                             lastLumi + 0.5);
+  bsChoice_ = ibooker.bookProfile("bsChoice",
+                                  "BS Choice (+1): HLT - (-1): Legacy - (-10): Fake BS - (0): No Transient ",
+                                  lastLumi - firstLumi + 1,
+                                  firstLumi - 0.5,
+                                  lastLumi + 0.5,
+                                  100,
+                                  -10,
+                                  1,
+                                  "");
   bsChoice_->setAxisTitle("Lumisection", 1);
   bsChoice_->setAxisTitle("Choice", 2);
 }
@@ -133,26 +137,25 @@ std::shared_ptr<onlinebeammonitor::NoCache> OnlineBeamMonitor::globalBeginLumino
     auto const& spotDB = *bsHLTHandle;
 
     // translate from BeamSpotObjects to reco::BeamSpot
-    BeamSpot::Point apoint(spotDB.GetX(), spotDB.GetY(), spotDB.GetZ());
+    BeamSpot::Point apoint(spotDB.x(), spotDB.y(), spotDB.z());
 
     BeamSpot::CovarianceMatrix matrix;
     for (int i = 0; i < 7; ++i) {
       for (int j = 0; j < 7; ++j) {
-        matrix(i, j) = spotDB.GetCovariance(i, j);
+        matrix(i, j) = spotDB.covariance(i, j);
       }
     }
 
-    beamSpotsMap_["HLT"] =
-        BeamSpot(apoint, spotDB.GetSigmaZ(), spotDB.Getdxdz(), spotDB.Getdydz(), spotDB.GetBeamWidthX(), matrix);
+    beamSpotsMap_["HLT"] = BeamSpot(apoint, spotDB.sigmaZ(), spotDB.dxdz(), spotDB.dydz(), spotDB.beamWidthX(), matrix);
 
     BeamSpot* aSpot = &(beamSpotsMap_["HLT"]);
 
-    aSpot->setBeamWidthY(spotDB.GetBeamWidthY());
-    aSpot->setEmittanceX(spotDB.GetEmittanceX());
-    aSpot->setEmittanceY(spotDB.GetEmittanceY());
-    aSpot->setbetaStar(spotDB.GetBetaStar());
+    aSpot->setBeamWidthY(spotDB.beamWidthY());
+    aSpot->setEmittanceX(spotDB.emittanceX());
+    aSpot->setEmittanceY(spotDB.emittanceY());
+    aSpot->setbetaStar(spotDB.betaStar());
 
-    if (spotDB.GetBeamType() == 2) {
+    if (spotDB.beamType() == 2) {
       aSpot->setType(reco::BeamSpot::Tracker);
     } else {
       aSpot->setType(reco::BeamSpot::Fake);
@@ -165,26 +168,26 @@ std::shared_ptr<onlinebeammonitor::NoCache> OnlineBeamMonitor::globalBeginLumino
   if (auto bsLegacyHandle = iSetup.getHandle(bsLegacyToken_)) {
     auto const& spotDB = *bsLegacyHandle;
     // translate from BeamSpotObjects to reco::BeamSpot
-    BeamSpot::Point apoint(spotDB.GetX(), spotDB.GetY(), spotDB.GetZ());
+    BeamSpot::Point apoint(spotDB.x(), spotDB.y(), spotDB.z());
 
     BeamSpot::CovarianceMatrix matrix;
     for (int i = 0; i < 7; ++i) {
       for (int j = 0; j < 7; ++j) {
-        matrix(i, j) = spotDB.GetCovariance(i, j);
+        matrix(i, j) = spotDB.covariance(i, j);
       }
     }
 
     beamSpotsMap_["Legacy"] =
-        BeamSpot(apoint, spotDB.GetSigmaZ(), spotDB.Getdxdz(), spotDB.Getdydz(), spotDB.GetBeamWidthX(), matrix);
+        BeamSpot(apoint, spotDB.sigmaZ(), spotDB.dxdz(), spotDB.dydz(), spotDB.beamWidthX(), matrix);
 
     BeamSpot* aSpot = &(beamSpotsMap_["Legacy"]);
 
-    aSpot->setBeamWidthY(spotDB.GetBeamWidthY());
-    aSpot->setEmittanceX(spotDB.GetEmittanceX());
-    aSpot->setEmittanceY(spotDB.GetEmittanceY());
-    aSpot->setbetaStar(spotDB.GetBetaStar());
+    aSpot->setBeamWidthY(spotDB.beamWidthY());
+    aSpot->setEmittanceX(spotDB.emittanceX());
+    aSpot->setEmittanceY(spotDB.emittanceY());
+    aSpot->setbetaStar(spotDB.betaStar());
 
-    if (spotDB.GetBeamType() == 2) {
+    if (spotDB.beamType() == 2) {
       aSpot->setType(reco::BeamSpot::Tracker);
     } else {
       aSpot->setType(reco::BeamSpot::Fake);
@@ -198,26 +201,26 @@ std::shared_ptr<onlinebeammonitor::NoCache> OnlineBeamMonitor::globalBeginLumino
     auto const& spotDB = *bsTransientHandle;
 
     // translate from BeamSpotObjects to reco::BeamSpot
-    BeamSpot::Point apoint(spotDB.GetX(), spotDB.GetY(), spotDB.GetZ());
+    BeamSpot::Point apoint(spotDB.x(), spotDB.y(), spotDB.z());
 
     BeamSpot::CovarianceMatrix matrix;
     for (int i = 0; i < 7; ++i) {
       for (int j = 0; j < 7; ++j) {
-        matrix(i, j) = spotDB.GetCovariance(i, j);
+        matrix(i, j) = spotDB.covariance(i, j);
       }
     }
 
     beamSpotsMap_["Transient"] =
-        BeamSpot(apoint, spotDB.GetSigmaZ(), spotDB.Getdxdz(), spotDB.Getdydz(), spotDB.GetBeamWidthX(), matrix);
+        BeamSpot(apoint, spotDB.sigmaZ(), spotDB.dxdz(), spotDB.dydz(), spotDB.beamWidthX(), matrix);
 
     BeamSpot* aSpot = &(beamSpotsMap_["Transient"]);
 
-    aSpot->setBeamWidthY(spotDB.GetBeamWidthY());
-    aSpot->setEmittanceX(spotDB.GetEmittanceX());
-    aSpot->setEmittanceY(spotDB.GetEmittanceY());
-    aSpot->setbetaStar(spotDB.GetBetaStar());
+    aSpot->setBeamWidthY(spotDB.beamWidthY());
+    aSpot->setEmittanceX(spotDB.emittanceX());
+    aSpot->setEmittanceY(spotDB.emittanceY());
+    aSpot->setbetaStar(spotDB.betaStar());
 
-    if (spotDB.GetBeamType() == 2) {
+    if (spotDB.beamType() == 2) {
       aSpot->setType(reco::BeamSpot::Tracker);
     } else {
       aSpot->setType(reco::BeamSpot::Fake);
@@ -236,18 +239,18 @@ void OnlineBeamMonitor::globalEndLuminosityBlock(const LuminosityBlock& iLumi, c
   if (beamSpotsMap_.find("Transient") != beamSpotsMap_.end()) {
     if (beamSpotsMap_.find("HLT") != beamSpotsMap_.end() &&
         beamSpotsMap_["Transient"].x0() == beamSpotsMap_["HLT"].x0()) {
-      bsChoice_->setBinContent(iLumi.id().luminosityBlock(), 1);
+      bsChoice_->Fill(iLumi.id().luminosityBlock(), 1);
       bsChoice_->setBinError(iLumi.id().luminosityBlock(), 0.05);
     } else if (beamSpotsMap_.find("Legacy") != beamSpotsMap_.end() &&
                beamSpotsMap_["Transient"].x0() == beamSpotsMap_["Legacy"].x0()) {
-      bsChoice_->setBinContent(iLumi.id().luminosityBlock(), -1);
+      bsChoice_->Fill(iLumi.id().luminosityBlock(), -1);
       bsChoice_->setBinError(iLumi.id().luminosityBlock(), 0.05);
     } else {
-      bsChoice_->setBinContent(iLumi.id().luminosityBlock(), -10);
+      bsChoice_->Fill(iLumi.id().luminosityBlock(), -10);
       bsChoice_->setBinError(iLumi.id().luminosityBlock(), 0.05);
     }
   } else {
-    bsChoice_->setBinContent(iLumi.id().luminosityBlock(), 0);
+    bsChoice_->Fill(iLumi.id().luminosityBlock(), 0);
     bsChoice_->setBinError(iLumi.id().luminosityBlock(), 0.05);
   }
 

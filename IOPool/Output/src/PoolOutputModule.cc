@@ -62,6 +62,7 @@ namespace edm {
         branchChildren_(),
         overrideInputFileSplitLevels_(pset.getUntrackedParameter<bool>("overrideInputFileSplitLevels")),
         compactEventAuxiliary_(pset.getUntrackedParameter<bool>("compactEventAuxiliary")),
+        mergeJob_(pset.getUntrackedParameter<bool>("mergeJob")),
         rootOutputFile_(),
         statusFileName_() {
     if (pset.getUntrackedParameter<bool>("writeStatusFile")) {
@@ -462,7 +463,7 @@ namespace edm {
     desc.addUntracked<int>("compressionLevel", 9)->setComment("ROOT compression level of output file.");
     desc.addUntracked<std::string>("compressionAlgorithm", "ZLIB")
         ->setComment(
-            "Algorithm used to compress data in the ROOT output file, allowed values are ZLIB, LZMA, and ZSTD");
+            "Algorithm used to compress data in the ROOT output file, allowed values are ZLIB, LZMA, LZ4, and ZSTD");
     desc.addUntracked<int>("basketSize", 16384)->setComment("Default ROOT basket size in output file.");
     desc.addUntracked<int>("eventAuxiliaryBasketSize", 16384)
         ->setComment("Default ROOT basket size in output file for EventAuxiliary branch.");
@@ -483,10 +484,14 @@ namespace edm {
         ->setComment(
             "True:  Allow fast copying, if possible.\n"
             "False: Disable fast copying.");
+    desc.addUntracked("mergeJob", false)
+        ->setComment(
+            "If set to true and fast copying is disabled, copy input file compression and basket sizes to the output "
+            "file.");
     desc.addUntracked<bool>("compactEventAuxiliary", false)
         ->setComment(
             "False: Write EventAuxiliary as we go like any other event metadata branch.\n"
-            "True:  Optimize the file layout be deferring writing the EventAuxiliary branch until the output file is "
+            "True:  Optimize the file layout by deferring writing the EventAuxiliary branch until the output file is "
             "closed.");
     desc.addUntracked<bool>("overrideInputFileSplitLevels", false)
         ->setComment(

@@ -10,28 +10,20 @@
 #include "FWCore/Framework/interface/EventSetup.h"
 #include "FWCore/Framework/interface/Run.h"
 
+#include "IOMC/ParticleGuns/interface/FlatRandomEGunProducer.h"
 #include "HepMC/GenEvent.h"
 #include "HepPDT/ParticleDataTable.hh"
 
 namespace edm {
 
-  class FlatEtaRangeGunProducer : public one::EDProducer<one::WatchRuns, EndRunProducer> {
+  class FlatEtaRangeGunProducer : public FlatRandomEGunProducer {
   public:
-    static void fillDescriptions(edm::ConfigurationDescriptions&);
-
-    explicit FlatEtaRangeGunProducer(const ParameterSet&);
-    ~FlatEtaRangeGunProducer() override;
-    void beginRun(const edm::Run&, const edm::EventSetup&) override;
-    void endRun(const edm::Run&, const edm::EventSetup&) override;
-    void endRunProduce(edm::Run&, const edm::EventSetup&) override;
+    FlatEtaRangeGunProducer(const ParameterSet&);
 
   private:
     void produce(Event&, const EventSetup&) override;
 
   protected:
-    // ids of particles to shoot
-    std::vector<int> particleIDs_;
-
     // the number of particles to shoot
     int nParticles_;
 
@@ -41,28 +33,12 @@ namespace edm {
     // flag that denotes whether a random number of particles in the range [1, fNParticles] is shot
     bool randomShoot_;
 
-    // energy range
-    double eMin_;
-    double eMax_;
-
-    // eta range
-    double etaMin_;
-    double etaMax_;
     const std::vector<double> discreteEnergies_;
-
-    // phi range
-    double phiMin_;
-    double phiMax_;
 
     double minDr_;
 
     // debug flag
     bool debug_;
-
-    // pointer to the current event
-
-    // pdg table
-    ESHandle<HepPDT::ParticleDataTable> pdgTable_;
   };
 
 }  // namespace edm

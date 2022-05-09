@@ -108,4 +108,3 @@ config = parser.parse_args()
 paths  = getPathList(config)
 for path in paths:
   print(path)
-
