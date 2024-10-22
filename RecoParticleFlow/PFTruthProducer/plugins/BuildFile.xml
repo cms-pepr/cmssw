@@ -1,0 +1,31 @@
+<library name="RecoParticleFlowPFTruthProducerPlugins" file="*.cc">
+    <use name="FWCore/MessageLogger" />
+    <use name="FWCore/Framework" />
+    <use name="FWCore/PluginManager"/>
+    <use name="FWCore/ParameterSet"/>
+    <use name="Geometry/HGCalGeometry" />
+    <use name="DataFormats/CaloRecHit" />
+    <use name="DataFormats/ParticleFlowReco" />
+    <use name="DataFormats/TrackReco" />
+    <use name="DataFormats/GeometrySurface" />
+    <use name="DataFormats/Math" />
+    <use name="Geometry/Records" />
+    <use name="SimDataFormats/CaloAnalysis" />
+    <use name="SimDataFormats/PFAnalysis" />
+    <use name="CommonTools/UtilAlgos" />
+    <use name="FastSimulation/Event" />
+    <use name="FastSimulation/CaloGeometryTools" />
+    <use name="TrackPropagation/RungeKutta" />
+    <use name="MagneticField/Engine" />
+    <use name="TrackingTools/Records" />
+    <use name="RecoLocalCalo/HGCalRecAlgos" />
+    <use name="HGCSimTruth/HGCSimTruth" />
+    <use name="RecoHGCal/GraphReco" />
+    <use name="RecoParticleFlow/PFTruthProducer" />
+    <use name="hepmc" />
+    <use name="heppdt" />
+
+    <flags EDM_PLUGIN="1" />
+</library>
+
+<flags CXXFLAGS="-g"/>

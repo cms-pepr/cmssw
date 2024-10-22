@@ -8,12 +8,27 @@
 #include "SimDataFormats/Associations/interface/VertexToTrackingVertexAssociator.h"
 #include "SimDataFormats/Associations/interface/LayerClusterToCaloParticleAssociator.h"
 #include "SimDataFormats/Associations/interface/LayerClusterToSimClusterAssociator.h"
+#include "SimDataFormats/Associations/interface/LayerClusterToSimTracksterAssociator.h"
 #include "SimDataFormats/Associations/interface/TrackAssociation.h"
 #include "SimDataFormats/Associations/interface/TracksterToSimClusterAssociator.h"
 #include "SimDataFormats/Associations/interface/MultiClusterToCaloParticleAssociator.h"
 #include "SimDataFormats/Associations/interface/TracksterToSimTracksterAssociator.h"
 #include "SimDataFormats/Associations/interface/TTTrackTruthPair.h"
-#include "SimDataFormats/Associations/interface/LayerClusterToSimTracksterAssociator.h"
+
+#include "DataFormats/Common/interface/AssociationMap.h"
+#include "DataFormats/Common/interface/AssociationMapHelpers.h"
+#include "SimDataFormats/TrackingAnalysis/interface/TrackingParticleFwd.h"
+#include "DataFormats/HGCRecHit/interface/HGCRecHit.h"
+#include "DataFormats/HGCRecHit/interface/HGCRecHitCollections.h"
+#include "DataFormats/CaloRecHit/interface/CaloCluster.h"
+#include "SimDataFormats/PFAnalysis/interface/PFTruthParticle.h"
+
+#include "DataFormats/Common/interface/Association.h"
+#include "DataFormats/Common/interface/AssociationMap.h"
+#include "DataFormats/Common/interface/Handle.h"
+#include "DataFormats/Common/interface/OneToManyWithQuality.h"
+#include "DataFormats/Common/interface/OneToManyWithQualityGeneric.h"
+#include "DataFormats/Common/interface/View.h"
 
 namespace SimDataFormats_Associations {
   struct SimDataFormats_Associations {

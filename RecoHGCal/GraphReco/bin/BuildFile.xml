@@ -1,0 +1,6 @@
+
+<use   name="RecoHGCal/GraphReco"/>
+<use name="root"/>
+
+
+<bin name="plotTestOutput" file="plotTestOutput.cpp" />

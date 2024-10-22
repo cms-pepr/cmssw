@@ -1,0 +1,18 @@
+
+<use name="DataFormats/TrackReco" />
+<use name="RecoLocalCalo/HGCalRecAlgos" />
+<use name="PhysicsTools/TensorFlow" />
+<use name="HeterogeneousCore/SonicCore"/>
+<use name="root"/>
+
+<use   name="Geometry/Records"/>
+<use   name="Geometry/CaloGeometry"/>
+<use   name="TrackingTools/Records"/>
+<use   name="DataFormats/HGCRecHit"/>
+<use   name="DataFormats/HGCalReco"/>
+
+  <use   name="SimGeneral/HepPDTRecord"/>
+  <use   name="TrackPropagation/RungeKutta"/>
+<export>
+  <lib   name="1"/>
+</export>

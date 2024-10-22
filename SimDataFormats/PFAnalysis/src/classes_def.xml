@@ -1,0 +1,12 @@
+<lcgdict>
+  <class name="PFTruthParticle" />
+  <class name="std::vector<PFTruthParticle>" />
+  <class name="edm::Wrapper<std::vector<PFTruthParticle> >" />
+  <class name="edm::RefProd<std::vector<PFTruthParticle> >" />
+  <class name="PFTruthParticleRef" />
+  <class name="edm::Ptr<PFTruthParticle>" />
+  <class name="std::vector<edm::Ptr<PFTruthParticle>>" />
+  <class name="PFTruthParticleRefVector" />
+  <class name="edm::Wrapper<PFTruthParticleRefVector>"/>
+</lcgdict>
+
